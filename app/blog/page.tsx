@@ -1,0 +1,105 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Post } from '@/types/blog'
+import { getPublishedPosts } from '@/lib/storage'
+import { PostGrid } from '@/components/blog/post-grid'
+import { Button } from '@/components/ui/button'
+
+export default function BlogPage() {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [displayedPosts, setDisplayedPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  const postsPerPage = 6
+
+  useEffect(() => {
+    const loadPosts = () => {
+      try {
+        const allPosts = getPublishedPosts()
+        setPosts(allPosts)
+        setDisplayedPosts(allPosts.slice(0, postsPerPage))
+      } catch (error) {
+        console.error('Error loading posts:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPosts()
+  }, [])
+
+  const loadMorePosts = () => {
+    setLoadingMore(true)
+    
+    setTimeout(() => {
+      const nextPage = currentPage + 1
+      const startIndex = 0
+      const endIndex = nextPage * postsPerPage
+      
+      setDisplayedPosts(posts.slice(startIndex, endIndex))
+      setCurrentPage(nextPage)
+      setLoadingMore(false)
+    }, 500) // Simulate loading delay
+  }
+
+  const hasMorePosts = displayedPosts.length < posts.length
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="py-12">
+      {/* Header */}
+      <div className="container mx-auto px-4 mb-12">
+        <div className="text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            All Blog Posts
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Explore our collection of articles covering web development, programming, and technology insights.
+          </p>
+          <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
+            {posts.length} {posts.length === 1 ? 'article' : 'articles'} published
+          </div>
+        </div>
+      </div>
+
+      {/* Posts Grid */}
+      <div className="container mx-auto px-4">
+        <PostGrid posts={displayedPosts} />
+        
+        {/* Load More Button */}
+        {hasMorePosts && (
+          <div className="text-center mt-12">
+            <Button 
+              size="lg" 
+              onClick={loadMorePosts}
+              disabled={loadingMore}
+              className="min-w-[200px]"
+            >
+              {loadingMore ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </>
+              ) : (
+                `Load More Posts (${posts.length - displayedPosts.length} remaining)`
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

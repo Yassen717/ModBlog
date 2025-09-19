@@ -6,7 +6,7 @@ export const sampleAuthor: Author = {
   id: '1',
   name: 'John Doe',
   bio: 'Full-stack developer passionate about modern web technologies, clean code, and creating amazing user experiences.',
-  avatar: '/images/author-avatar.jpg',
+  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&auto=format&q=80',
   social: {
     twitter: 'https://twitter.com/johndoe',
     github: 'https://github.com/johndoe',
@@ -986,7 +986,7 @@ export const samplePosts: Post[] = samplePostsData.map((postData, index) => {
     slug: generateSlug(postData.title),
     excerpt: postData.excerpt,
     content: postData.content,
-    featuredImage: `/images/blog-${index + 1}.jpg`,
+    featuredImage: `https://images.unsplash.com/photo-${1600000000000 + index * 100000}?w=800&h=400&fit=crop&crop=entropy&auto=format&q=80`,
     author: sampleAuthor,
     category,
     tags: postData.tags,

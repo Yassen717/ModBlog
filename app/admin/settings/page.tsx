@@ -1,0 +1,433 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+
+// Mock settings data
+const initialSettings = {
+  general: {
+    siteName: 'Modern Blog',
+    siteDescription: 'A modern, beautiful blog built with Next.js and TypeScript',
+    siteUrl: 'https://modernblog.com',
+    timezone: 'America/New_York',
+    language: 'en',
+  },
+  appearance: {
+    theme: 'system',
+    primaryColor: '#3B82F6',
+    fontFamily: 'Inter',
+    logoUrl: '',
+    faviconUrl: '',
+  },
+  content: {
+    postsPerPage: 10,
+    enableComments: true,
+    moderateComments: true,
+    allowGuestComments: false,
+    showAuthorBio: true,
+    showReadingTime: true,
+    enableSocialSharing: true,
+  },
+  seo: {
+    metaTitle: 'Modern Blog - Latest in Web Development',
+    metaDescription: 'Stay updated with the latest trends in web development, JavaScript, React, and more.',
+    ogImage: '',
+    twitterHandle: '@modernblog',
+    enableSitemap: true,
+    enableRobotsTxt: true,
+  },
+  analytics: {
+    googleAnalyticsId: '',
+    googleSearchConsole: '',
+    enableCookieConsent: true,
+    trackingScript: '',
+  },
+  security: {
+    enableTwoFactor: false,
+    sessionTimeout: 24,
+    enableCaptcha: true,
+    maxLoginAttempts: 5,
+  },
+  notifications: {
+    emailNotifications: true,
+    newCommentNotifications: true,
+    weeklyReports: true,
+    systemUpdates: true,
+  },
+}
+
+export default function SettingsAdmin() {
+  const [settings, setSettings] = useState(initialSettings)
+  const [activeTab, setActiveTab] = useState('general')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const tabs = [
+    { id: 'general', name: 'General', icon: '⚙️' },
+    { id: 'appearance', name: 'Appearance', icon: '🎨' },
+    { id: 'content', name: 'Content', icon: '📝' },
+    { id: 'seo', name: 'SEO', icon: '🔍' },
+    { id: 'analytics', name: 'Analytics', icon: '📊' },
+    { id: 'security', name: 'Security', icon: '🔒' },
+    { id: 'notifications', name: 'Notifications', icon: '🔔' },
+  ]
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsSaving(false)
+    alert('Settings saved successfully!')
+  }
+
+  const updateSetting = (category: string, key: string, value: string | number | boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category as keyof typeof prev],
+        [key]: value,
+      },
+    }))
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">Configure your blog settings and preferences</p>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? 'Saving...' : '💾 Save Changes'}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <Card className="p-4">
+            <nav className="space-y-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="mr-3">{tab.icon}</span>
+                  {tab.name}
+                </button>
+              ))}
+            </nav>
+          </Card>
+        </div>
+
+        {/* Content */}
+        <div className="lg:col-span-3">
+          <Card className="p-6">
+            {/* General Settings */}
+            {activeTab === 'general' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">General Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Site Name
+                    </label>
+                    <Input
+                      type="text"
+                      value={settings.general.siteName}
+                      onChange={(e) => updateSetting('general', 'siteName', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Site URL
+                    </label>
+                    <Input
+                      type="url"
+                      value={settings.general.siteUrl}
+                      onChange={(e) => updateSetting('general', 'siteUrl', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Site Description
+                  </label>
+                  <textarea
+                    value={settings.general.siteDescription}
+                    onChange={(e) => updateSetting('general', 'siteDescription', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Timezone
+                    </label>
+                    <select
+                      value={settings.general.timezone}
+                      onChange={(e) => updateSetting('general', 'timezone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="America/New_York">Eastern Time</option>
+                      <option value="America/Chicago">Central Time</option>
+                      <option value="America/Denver">Mountain Time</option>
+                      <option value="America/Los_Angeles">Pacific Time</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Language
+                    </label>
+                    <select
+                      value={settings.general.language}
+                      onChange={(e) => updateSetting('general', 'language', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Appearance Settings */}
+            {activeTab === 'appearance' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Appearance Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Theme
+                    </label>
+                    <select
+                      value={settings.appearance.theme}
+                      onChange={(e) => updateSetting('appearance', 'theme', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                      <option value="system">System</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Primary Color
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="color"
+                        value={settings.appearance.primaryColor}
+                        onChange={(e) => updateSetting('appearance', 'primaryColor', e.target.value)}
+                        className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-md"
+                      />
+                      <Input
+                        type="text"
+                        value={settings.appearance.primaryColor}
+                        onChange={(e) => updateSetting('appearance', 'primaryColor', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Font Family
+                  </label>
+                  <select
+                    value={settings.appearance.fontFamily}
+                    onChange={(e) => updateSetting('appearance', 'fontFamily', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="Inter">Inter</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Open Sans">Open Sans</option>
+                    <option value="Montserrat">Montserrat</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Logo URL
+                    </label>
+                    <Input
+                      type="url"
+                      value={settings.appearance.logoUrl}
+                      onChange={(e) => updateSetting('appearance', 'logoUrl', e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Favicon URL
+                    </label>
+                    <Input
+                      type="url"
+                      value={settings.appearance.faviconUrl}
+                      onChange={(e) => updateSetting('appearance', 'faviconUrl', e.target.value)}
+                      placeholder="https://example.com/favicon.ico"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content Settings */}
+            {activeTab === 'content' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Content Settings</h2>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Posts Per Page
+                  </label>
+                  <Input
+                    type="number"
+                    value={settings.content.postsPerPage}
+                    onChange={(e) => updateSetting('content', 'postsPerPage', parseInt(e.target.value))}
+                    min="1"
+                    max="50"
+                    className="w-32"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Enable Comments
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.enableComments}
+                      onChange={(e) => updateSetting('content', 'enableComments', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Moderate Comments
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.moderateComments}
+                      onChange={(e) => updateSetting('content', 'moderateComments', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Allow Guest Comments
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.allowGuestComments}
+                      onChange={(e) => updateSetting('content', 'allowGuestComments', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Show Author Bio
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.showAuthorBio}
+                      onChange={(e) => updateSetting('content', 'showAuthorBio', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Show Reading Time
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.showReadingTime}
+                      onChange={(e) => updateSetting('content', 'showReadingTime', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Enable Social Sharing
+                    </label>
+                    <input
+                      type="checkbox"
+                      checked={settings.content.enableSocialSharing}
+                      onChange={(e) => updateSetting('content', 'enableSocialSharing', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Other tabs would be similar... */}
+            {activeTab === 'seo' && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">SEO Settings</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Meta Title
+                    </label>
+                    <Input
+                      type="text"
+                      value={settings.seo.metaTitle}
+                      onChange={(e) => updateSetting('seo', 'metaTitle', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Meta Description
+                    </label>
+                    <textarea
+                      value={settings.seo.metaDescription}
+                      onChange={(e) => updateSetting('seo', 'metaDescription', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Twitter Handle
+                    </label>
+                    <Input
+                      type="text"
+                      value={settings.seo.twitterHandle}
+                      onChange={(e) => updateSetting('seo', 'twitterHandle', e.target.value)}
+                      placeholder="@username"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Placeholder for other tabs */}
+            {!['general', 'appearance', 'content', 'seo'].includes(activeTab) && (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">🚧</div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  {tabs.find(t => t.id === activeTab)?.name} Settings
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  This section is coming soon. Configure your {activeTab} preferences here.
+                </p>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}

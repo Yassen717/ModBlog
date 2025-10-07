@@ -1,13 +1,21 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Post } from '@/types/blog'
 import { getPublishedPosts } from '@/lib/storage'
 import { PostGrid } from '@/components/blog/post-grid'
 import { Button } from '@/components/ui/button'
+import { sampleCategories } from '@/lib/sample-data'
 
 export default function BlogPage() {
+  const searchParams = useSearchParams()
+  const categoryFilter = searchParams.get('category')
+  const tagFilter = searchParams.get('tag')
+  
   const [posts, setPosts] = useState<Post[]>([])
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([])
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -20,7 +28,27 @@ export default function BlogPage() {
       try {
         const allPosts = getPublishedPosts()
         setPosts(allPosts)
-        setDisplayedPosts(allPosts.slice(0, postsPerPage))
+        
+        // Apply filters
+        let filtered = allPosts
+        
+        if (categoryFilter) {
+          filtered = filtered.filter(post => post.category.slug === categoryFilter)
+        }
+        
+        if (tagFilter) {
+          const tag = tagFilter.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          filtered = filtered.filter(post => 
+            post.tags.some(postTag => 
+              postTag.toLowerCase().replace(/\s+/g, '-') === tagFilter ||
+              postTag.toLowerCase() === tag.toLowerCase()
+            )
+          )
+        }
+        
+        setFilteredPosts(filtered)
+        setDisplayedPosts(filtered.slice(0, postsPerPage))
+        setCurrentPage(1)
       } catch (error) {
         console.error('Error loading posts:', error)
       } finally {
@@ -29,7 +57,7 @@ export default function BlogPage() {
     }
 
     loadPosts()
-  }, [])
+  }, [categoryFilter, tagFilter])
 
   const loadMorePosts = () => {
     setLoadingMore(true)
@@ -39,13 +67,18 @@ export default function BlogPage() {
       const startIndex = 0
       const endIndex = nextPage * postsPerPage
       
-      setDisplayedPosts(posts.slice(startIndex, endIndex))
+      setDisplayedPosts(filteredPosts.slice(startIndex, endIndex))
       setCurrentPage(nextPage)
       setLoadingMore(false)
     }, 500) // Simulate loading delay
   }
 
-  const hasMorePosts = displayedPosts.length < posts.length
+  const hasMorePosts = displayedPosts.length < filteredPosts.length
+  
+  // Get current category for display
+  const currentCategory = categoryFilter 
+    ? sampleCategories.find(cat => cat.slug === categoryFilter)
+    : null
 
   if (loading) {
     return (
@@ -60,15 +93,53 @@ export default function BlogPage() {
       {/* Header */}
       <div className="container mx-auto px-4 mb-12">
         <div className="text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            All Blog Posts
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Explore our collection of articles covering web development, programming, and technology insights.
-          </p>
+          {currentCategory ? (
+            <>
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                  style={{ backgroundColor: currentCategory.color }}
+                >
+                  {currentCategory.name.charAt(0)}
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100">
+                  {currentCategory.name}
+                </h1>
+              </div>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                {currentCategory.description}
+              </p>
+            </>
+          ) : tagFilter ? (
+            <>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                #{tagFilter.replace(/-/g, '')}
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Articles tagged with {tagFilter.replace(/-/g, ' ')}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                All Blog Posts
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Explore our collection of articles covering web development, programming, and technology insights.
+              </p>
+            </>
+          )}
           <div className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-            {posts.length} {posts.length === 1 ? 'article' : 'articles'} published
+            {filteredPosts.length} {filteredPosts.length === 1 ? 'article' : 'articles'} 
+            {categoryFilter || tagFilter ? ' found' : ' published'}
           </div>
+          {(categoryFilter || tagFilter) && (
+            <div className="mt-4">
+              <Button variant="secondary" asChild>
+                <Link href="/blog">← View All Posts</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -94,7 +165,7 @@ export default function BlogPage() {
                   Loading...
                 </>
               ) : (
-                `Load More Posts (${posts.length - displayedPosts.length} remaining)`
+                `Load More Posts (${filteredPosts.length - displayedPosts.length} remaining)`
               )}
             </Button>
           </div>

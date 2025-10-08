@@ -1,93 +1,100 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-
-// Mock posts data
-const mockPosts = [
-  {
-    id: '1',
-    title: 'Getting Started with Next.js 14 and the App Router',
-    status: 'published',
-    author: 'John Doe',
-    category: 'Next.js',
-    publishedAt: '2024-01-15',
-    views: 1234,
-    comments: 5,
-  },
-  {
-    id: '2',
-    title: 'Mastering TypeScript: Advanced Types and Patterns',
-    status: 'draft',
-    author: 'John Doe',
-    category: 'JavaScript',
-    publishedAt: '2024-01-14',
-    views: 856,
-    comments: 3,
-  },
-  {
-    id: '3',
-    title: 'Building Responsive Layouts with CSS Grid and Flexbox',
-    status: 'published',
-    author: 'John Doe',
-    category: 'CSS',
-    publishedAt: '2024-01-13',
-    views: 2341,
-    comments: 8,
-  },
-  {
-    id: '4',
-    title: 'React Server Components: The Future of React',
-    status: 'published',
-    author: 'John Doe',
-    category: 'React',
-    publishedAt: '2024-01-12',
-    views: 1876,
-    comments: 12,
-  },
-  {
-    id: '5',
-    title: 'Modern JavaScript: ES2024 Features You Should Know',
-    status: 'scheduled',
-    author: 'John Doe',
-    category: 'JavaScript',
-    publishedAt: '2024-01-20',
-    views: 0,
-    comments: 0,
-  },
-]
+import { Post } from '@/types/blog'
 
 const statusColors = {
   published: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
   draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
 }
 
 export default function PostsAdmin() {
-  const [posts, setPosts] = useState(mockPosts)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
+  // Fetch posts from API
+  useEffect(() => {
+    fetchPosts()
+  }, [])
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/posts')
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(data.posts)
+      } else {
+        console.error('Failed to fetch posts')
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.category.toLowerCase().includes(searchTerm.toLowerCase())
+                         post.category.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this post?')) {
-      setPosts(posts.filter(post => post.id !== id))
+      try {
+        const response = await fetch(`/api/posts/${id}`, {
+          method: 'DELETE'
+        })
+        if (response.ok) {
+          setPosts(posts.filter(post => post.id !== id))
+        } else {
+          alert('Failed to delete post')
+        }
+      } catch (error) {
+        console.error('Error deleting post:', error)
+        alert('Error deleting post')
+      }
     }
   }
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setPosts(posts.map(post => 
-      post.id === id ? { ...post, status: newStatus } : post
-    ))
+  const handleStatusChange = async (id: string, newStatus: 'draft' | 'published') => {
+    try {
+      const response = await fetch(`/api/posts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(posts.map(post => 
+          post.id === id ? data.post : post
+        ))
+      } else {
+        alert('Failed to update post status')
+      }
+    } catch (error) {
+      console.error('Error updating post:', error)
+      alert('Error updating post')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -123,11 +130,7 @@ export default function PostsAdmin() {
               <option value="all">All Status</option>
               <option value="published">Published</option>
               <option value="draft">Draft</option>
-              <option value="scheduled">Scheduled</option>
             </select>
-            <Button variant="secondary">
-              📊 Bulk Actions
-            </Button>
           </div>
         </div>
       </Card>
@@ -148,15 +151,15 @@ export default function PostsAdmin() {
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {posts.reduce((sum, post) => sum + post.views, 0).toLocaleString()}
+            {posts.length}
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Views</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Posts</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {posts.reduce((sum, post) => sum + post.comments, 0)}
+            {Math.round(posts.reduce((sum, post) => sum + post.readingTime, 0) / posts.length) || 0}
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Comments</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Avg Reading Time</div>
         </Card>
       </div>
 
@@ -176,7 +179,7 @@ export default function PostsAdmin() {
                   Category
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Stats
+                  Reading Time
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Date
@@ -195,28 +198,30 @@ export default function PostsAdmin() {
                         {post.title}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        by {post.author}
+                        by {post.author.name}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[post.status as keyof typeof statusColors]}`}>
-                      {post.status}
-                    </span>
+                    <select
+                      value={post.status}
+                      onChange={(e) => handleStatusChange(post.id, e.target.value as 'draft' | 'published')}
+                      className={`text-xs px-2 py-1 rounded-full border-0 ${statusColors[post.status]}`}
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                    {post.category}
+                    {post.category.name}
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 dark:text-white">
-                      👁️ {post.views.toLocaleString()}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      💬 {post.comments}
+                      {post.readingTime} min read
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {post.publishedAt}
+                    {post.publishedAt.toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">
@@ -224,35 +229,11 @@ export default function PostsAdmin() {
                         <Link href={`/admin/posts/${post.id}/edit`}>📝</Link>
                       </Button>
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/blog/${post.title.toLowerCase().replace(/\s+/g, '-')}`}>👁️</Link>
+                        <Link href={`/blog/${post.slug}`}>👁️</Link>
                       </Button>
-                      <div className="relative group">
-                        <Button variant="ghost" size="sm">
-                          ⋮
-                        </Button>
-                        <div className="absolute right-0 z-10 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                          <div className="py-1">
-                            <button
-                              onClick={() => handleStatusChange(post.id, post.status === 'published' ? 'draft' : 'published')}
-                              className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                            >
-                              {post.status === 'published' ? 'Unpublish' : 'Publish'}
-                            </button>
-                            <button
-                              onClick={() => {/* Duplicate logic */}}
-                              className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                            >
-                              Duplicate
-                            </button>
-                            <button
-                              onClick={() => handleDelete(post.id)}
-                              className="block px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(post.id)}>
+                        🗑️
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -262,23 +243,23 @@ export default function PostsAdmin() {
         </div>
       </Card>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-700 dark:text-gray-300">
-          Showing {filteredPosts.length} of {posts.length} posts
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="secondary" size="sm" disabled>
-            Previous
+      {/* Empty State */}
+      {filteredPosts.length === 0 && !loading && (
+        <Card className="p-12 text-center">
+          <div className="text-6xl mb-4">📝</div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            No posts found
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Try adjusting your search or filter criteria.' 
+              : 'Get started by creating your first blog post.'}
+          </p>
+          <Button asChild>
+            <Link href="/admin/posts/new">Create First Post</Link>
           </Button>
-          <Button variant="secondary" size="sm">
-            1
-          </Button>
-          <Button variant="secondary" size="sm" disabled>
-            Next
-          </Button>
-        </div>
-      </div>
+        </Card>
+      )}
     </div>
   )
 }

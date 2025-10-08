@@ -52,10 +52,66 @@ export function savePost(post: Post): void {
   saveToStorage(STORAGE_KEYS.POSTS, posts)
 }
 
-export function deletePost(id: string): void {
+export function deletePost(id: string): boolean {
   const posts = getPosts()
+  const initialLength = posts.length
   const filteredPosts = posts.filter(post => post.id !== id)
+  
+  if (filteredPosts.length === initialLength) {
+    return false // Post not found
+  }
+  
   saveToStorage(STORAGE_KEYS.POSTS, filteredPosts)
+  return true
+}
+
+// Get all posts (including drafts) for admin
+export function getAllPosts(): Post[] {
+  return getPosts()
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+}
+
+// Get post by ID
+export function getPostById(id: string): Post | undefined {
+  const posts = getPosts()
+  return posts.find(post => post.id === id)
+}
+
+// Create new post
+export function createPost(postData: Omit<Post, 'id'>): Post {
+  const newPost: Post = {
+    ...postData,
+    id: generateId(),
+  }
+  
+  savePost(newPost)
+  return newPost
+}
+
+// Update existing post
+export function updatePost(id: string, postData: Partial<Post>): Post | null {
+  const posts = getPosts()
+  const existingIndex = posts.findIndex(p => p.id === id)
+  
+  if (existingIndex === -1) {
+    return null
+  }
+  
+  const updatedPost = {
+    ...posts[existingIndex],
+    ...postData,
+    id, // Ensure ID doesn't change
+    updatedAt: new Date()
+  }
+  
+  posts[existingIndex] = updatedPost
+  saveToStorage(STORAGE_KEYS.POSTS, posts)
+  return updatedPost
+}
+
+// Generate unique ID
+function generateId(): string {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9)
 }
 
 export function getPostBySlug(slug: string): Post | undefined {

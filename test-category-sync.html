@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Category Sync Test</title>
+</head>
+<body>
+    <h1>Category Data Sync Test</h1>
+    <p>Open browser console and run this to test category localStorage sync:</p>
+    
+    <button onclick="addTestCategory()">Add Test Category</button>
+    <button onclick="viewCategories()">View Categories</button>
+    <button onclick="clearCategories()">Clear Categories</button>
+    
+    <script>
+        function addTestCategory() {
+            const categories = JSON.parse(localStorage.getItem('blog_categories') || '[]');
+            const testCategory = {
+                id: Date.now().toString(),
+                name: 'Test Category',
+                slug: 'test-category',
+                description: 'A test category created for verification',
+                color: '#FF6B6B'
+            };
+            categories.push(testCategory);
+            localStorage.setItem('blog_categories', JSON.stringify(categories));
+            console.log('Test category added:', testCategory);
+            alert('Test category added! Check console and admin panel.');
+        }
+        
+        function viewCategories() {
+            const categories = JSON.parse(localStorage.getItem('blog_categories') || '[]');
+            console.log('Current categories in localStorage:', categories);
+            alert(`Found ${categories.length} categories. Check console for details.`);
+        }
+        
+        function clearCategories() {
+            localStorage.removeItem('blog_categories');
+            console.log('Categories cleared from localStorage');
+            alert('Categories cleared!');
+        }
+    </script>
+</body>
+</html>

@@ -2,17 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCategories, saveCategory } from '@/lib/storage'
 import { Category } from '@/types/blog'
 import { generateSlug } from '@/lib/utils'
+import { sampleCategories } from '@/lib/sample-data'
 
 // GET /api/categories - Get all categories
 export async function GET() {
   try {
-    const categories = getCategories()
+    let categories = getCategories()
+    
+    // If no categories exist (server-side or empty localStorage), return sample categories
+    if (categories.length === 0) {
+      categories = sampleCategories
+    }
+    
     return NextResponse.json({ categories })
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch categories' },
-      { status: 500 }
-    )
+    // If there's an error, fallback to sample categories
+    return NextResponse.json({ categories: sampleCategories })
   }
 }
 

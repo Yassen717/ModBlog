@@ -77,12 +77,15 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       const response = await fetch('/api/categories')
       if (response.ok) {
         const data = await response.json()
+        console.log('Categories loaded from API:', data.categories)
         setCategories(data.categories)
       } else {
+        console.log('API failed, using sample categories')
         setCategories(sampleCategories)
       }
     } catch (error) {
       console.error('Error loading categories:', error)
+      console.log('Error occurred, using sample categories')
       setCategories(sampleCategories)
     }
   }
@@ -434,13 +437,20 @@ export default function EditPostPage({ params }: EditPostPageProps) {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Category
             </h3>
+            {categories.length === 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                  No categories available. Please create categories first or refresh the page.
+                </p>
+              </div>
+            )}
             <select
               value={formData.categoryId}
               onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               disabled={loading}
             >
-              <option value="">Select a category</option>
+              <option value="">Select a category ({categories.length} available)</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}

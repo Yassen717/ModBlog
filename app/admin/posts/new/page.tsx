@@ -35,13 +35,16 @@ export default function CreatePostPage() {
       const response = await fetch('/api/categories')
       if (response.ok) {
         const data = await response.json()
+        console.log('Categories loaded from API:', data.categories)
         setCategories(data.categories)
       } else {
+        console.log('API failed, using sample categories')
         // Fallback to sample categories if API fails
         setCategories(sampleCategories)
       }
     } catch (error) {
       console.error('Error loading categories:', error)
+      console.log('Error occurred, using sample categories')
       setCategories(sampleCategories)
     }
   }
@@ -87,15 +90,40 @@ export default function CreatePostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Use the current form data for direct form submission
+    await submitPost(formData)
+  }
+
+  const handleSaveAsDraft = async () => {
+    // Set status to draft and submit
+    const draftFormData = { ...formData, status: 'draft' as const }
+    setFormData(draftFormData)
+    
     if (!validateForm()) {
       return
     }
 
+    await submitPost(draftFormData)
+  }
+
+  const handlePublish = async () => {
+    // Set status to published and submit
+    const publishedFormData = { ...formData, status: 'published' as const }
+    setFormData(publishedFormData)
+    
+    if (!validateForm()) {
+      return
+    }
+
+    await submitPost(publishedFormData)
+  }
+
+  const submitPost = async (formDataToSubmit: typeof formData) => {
     setLoading(true)
     setErrors({})
 
     try {
-      const selectedCategory = categories.find(cat => cat.id === formData.categoryId)
+      const selectedCategory = categories.find(cat => cat.id === formDataToSubmit.categoryId)
       
       if (!selectedCategory) {
         setErrors({ categoryId: 'Invalid category selected' })
@@ -103,19 +131,19 @@ export default function CreatePostPage() {
       }
 
       const postData = {
-        title: formData.title,
-        slug: formData.slug,
-        excerpt: formData.excerpt,
-        content: formData.content,
-        featuredImage: formData.featuredImage || undefined,
+        title: formDataToSubmit.title,
+        slug: formDataToSubmit.slug,
+        excerpt: formDataToSubmit.excerpt,
+        content: formDataToSubmit.content,
+        featuredImage: formDataToSubmit.featuredImage || undefined,
         author: sampleAuthor,
         category: selectedCategory,
-        tags: formData.tags
+        tags: formDataToSubmit.tags
           .split(',')
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0),
-        status: formData.status,
-        publishedAt: formData.status === 'published' ? new Date().toISOString() : undefined
+        status: formDataToSubmit.status,
+        publishedAt: formDataToSubmit.status === 'published' ? new Date().toISOString() : undefined
       }
 
       const response = await fetch('/api/posts', {
@@ -128,7 +156,34 @@ export default function CreatePostPage() {
 
       if (response.ok) {
         const data = await response.json()
-        router.push('/admin/posts')
+        console.log('Post created successfully:', data)
+        
+        // If the API tells us to persist, save to localStorage
+        if (data.persist && data.post) {
+          try {
+            // Get existing posts from localStorage
+            const existingPosts = JSON.parse(localStorage.getItem('blog_posts') || '[]')
+            
+            // Add the new post
+            existingPosts.push(data.post)
+            
+            // Save back to localStorage
+            localStorage.setItem('blog_posts', JSON.stringify(existingPosts))
+            
+            console.log('Post saved to localStorage:', data.post)
+          } catch (error) {
+            console.error('Failed to save post to localStorage:', error)
+          }
+        }
+        
+        // Clear any previous errors and show success
+        const statusText = formDataToSubmit.status === 'published' ? 'published' : 'saved as draft'
+        setErrors({ success: `Post ${statusText} successfully! Redirecting...` })
+        
+        // Add a small delay to show the success state
+        setTimeout(() => {
+          router.push('/admin/posts')
+        }, 1500)
       } else {
         const errorData = await response.json()
         setErrors({ submit: errorData.error || 'Failed to create post' })
@@ -139,24 +194,6 @@ export default function CreatePostPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleSaveAsDraft = () => {
-    setFormData(prev => ({ ...prev, status: 'draft' }))
-    // Trigger form submission
-    setTimeout(() => {
-      const form = document.getElementById('post-form') as HTMLFormElement
-      form?.requestSubmit()
-    }, 0)
-  }
-
-  const handlePublish = () => {
-    setFormData(prev => ({ ...prev, status: 'published' }))
-    // Trigger form submission
-    setTimeout(() => {
-      const form = document.getElementById('post-form') as HTMLFormElement
-      form?.requestSubmit()
-    }, 0)
   }
 
   return (
@@ -259,6 +296,13 @@ export default function CreatePostPage() {
                   {errors.submit}
                 </div>
               )}
+              
+              {/* Success Display */}
+              {errors.success && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-md">
+                  ✅ {errors.success}
+                </div>
+              )}
             </form>
           </Card>
         </div>
@@ -314,13 +358,20 @@ export default function CreatePostPage() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Category
             </h3>
+            {categories.length === 0 && (
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                  No categories available. Please create categories first or refresh the page.
+                </p>
+              </div>
+            )}
             <select
               value={formData.categoryId}
               onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               disabled={loading}
             >
-              <option value="">Select a category</option>
+              <option value="">Select a category ({categories.length} available)</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}

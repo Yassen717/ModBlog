@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Post } from '@/types/blog'
+import { getAllPosts, savePost, deletePost } from '@/lib/storage'
 
 const statusColors = {
   published: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -18,21 +19,35 @@ export default function PostsAdmin() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  // Fetch posts from API
+  // Fetch posts from localStorage directly instead of API
   useEffect(() => {
     fetchPosts()
+  }, [])
+  
+  // Refresh posts when page becomes visible (e.g., returning from create page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchPosts()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   const fetchPosts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/posts')
-      if (response.ok) {
-        const data = await response.json()
-        setPosts(data.posts)
-      } else {
-        console.error('Failed to fetch posts')
-      }
+      
+      // Get posts directly from localStorage
+      const allPosts = getAllPosts()
+      setPosts(allPosts)
+      
+      console.log('Loaded posts from localStorage:', allPosts.length)
     } catch (error) {
       console.error('Error fetching posts:', error)
     } finally {
@@ -50,13 +65,15 @@ export default function PostsAdmin() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this post?')) {
       try {
-        const response = await fetch(`/api/posts/${id}`, {
-          method: 'DELETE'
-        })
-        if (response.ok) {
+        // Delete from localStorage directly
+        const success = deletePost(id)
+        
+        if (success) {
+          // Update the state immediately
           setPosts(posts.filter(post => post.id !== id))
+          console.log('Post deleted successfully:', id)
         } else {
-          alert('Failed to delete post')
+          alert('Failed to delete post - post not found')
         }
       } catch (error) {
         console.error('Error deleting post:', error)
@@ -67,22 +84,29 @@ export default function PostsAdmin() {
 
   const handleStatusChange = async (id: string, newStatus: 'draft' | 'published') => {
     try {
-      const response = await fetch(`/api/posts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setPosts(posts.map(post => 
-          post.id === id ? data.post : post
-        ))
-      } else {
-        alert('Failed to update post status')
+      // Find the current post data
+      const currentPost = posts.find(post => post.id === id)
+      if (!currentPost) {
+        alert('Post not found')
+        return
       }
+
+      // Update the post directly in localStorage
+      const updatedPost = {
+        ...currentPost,
+        status: newStatus,
+        updatedAt: new Date()
+      }
+      
+      // Save to localStorage
+      savePost(updatedPost)
+      
+      // Update the state immediately
+      setPosts(posts.map(post => 
+        post.id === id ? updatedPost : post
+      ))
+      
+      console.log(`Post status changed to ${newStatus}:`, updatedPost)
     } catch (error) {
       console.error('Error updating post:', error)
       alert('Error updating post')
@@ -206,7 +230,7 @@ export default function PostsAdmin() {
                     <select
                       value={post.status}
                       onChange={(e) => handleStatusChange(post.id, e.target.value as 'draft' | 'published')}
-                      className={`text-xs px-2 py-1 rounded-full border-0 ${statusColors[post.status]}`}
+                      className={`text-xs px-2 py-1 rounded-full border-0 ${statusColors[post.status as keyof typeof statusColors]}`}
                     >
                       <option value="published">Published</option>
                       <option value="draft">Draft</option>

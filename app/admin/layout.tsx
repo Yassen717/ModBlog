@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useSampleData } from '@/hooks/use-sample-data'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: '📊' },
@@ -31,6 +32,9 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
+
+  // Initialize sample data
+  useSampleData()
 
   // Check authentication status
   useEffect(() => {

@@ -1,9 +1,12 @@
-import { Post, Author, Category } from '@/types/blog'
+import { Post, Author, Category, User, Comment, BlogSettings } from '@/types/blog'
 
 const STORAGE_KEYS = {
   POSTS: 'blog_posts',
   AUTHORS: 'blog_authors',
   CATEGORIES: 'blog_categories',
+  USERS: 'blog_users',
+  COMMENTS: 'blog_comments',
+  SETTINGS: 'blog_settings',
 } as const
 
 // Generic storage utilities
@@ -194,4 +197,169 @@ export function getPostsByTag(tag: string): Post[] {
   return posts.filter(post => 
     post.tags.some(postTag => postTag.toLowerCase() === tag.toLowerCase())
   )
+}
+
+// User storage utilities
+export function getUsers(): User[] {
+  const users = getFromStorage<User>(STORAGE_KEYS.USERS)
+  return users.map(user => ({
+    ...user,
+    createdAt: new Date(user.createdAt),
+    updatedAt: new Date(user.updatedAt),
+  }))
+}
+
+export function saveUser(user: User): void {
+  const users = getUsers()
+  const existingIndex = users.findIndex(u => u.id === user.id)
+  
+  if (existingIndex >= 0) {
+    users[existingIndex] = { ...user, updatedAt: new Date() }
+  } else {
+    users.push({ ...user, createdAt: new Date(), updatedAt: new Date() })
+  }
+  
+  saveToStorage(STORAGE_KEYS.USERS, users)
+}
+
+export function getUserById(id: string): User | undefined {
+  const users = getUsers()
+  return users.find(user => user.id === id)
+}
+
+export function deleteUser(id: string): boolean {
+  const users = getUsers()
+  const initialLength = users.length
+  const filteredUsers = users.filter(user => user.id !== id)
+  
+  if (filteredUsers.length === initialLength) {
+    return false // User not found
+  }
+  
+  saveToStorage(STORAGE_KEYS.USERS, filteredUsers)
+  return true
+}
+
+export function getUsersByRole(role: User['role']): User[] {
+  const users = getUsers()
+  return users.filter(user => user.role === role)
+}
+
+// Comment storage utilities
+export function getComments(): Comment[] {
+  const comments = getFromStorage<Comment>(STORAGE_KEYS.COMMENTS)
+  return comments.map(comment => ({
+    ...comment,
+    createdAt: new Date(comment.createdAt),
+    updatedAt: new Date(comment.updatedAt),
+  }))
+}
+
+export function saveComment(comment: Comment): void {
+  const comments = getComments()
+  const existingIndex = comments.findIndex(c => c.id === comment.id)
+  
+  if (existingIndex >= 0) {
+    comments[existingIndex] = { ...comment, updatedAt: new Date() }
+  } else {
+    comments.push({ ...comment, createdAt: new Date(), updatedAt: new Date() })
+  }
+  
+  saveToStorage(STORAGE_KEYS.COMMENTS, comments)
+}
+
+export function getCommentById(id: string): Comment | undefined {
+  const comments = getComments()
+  return comments.find(comment => comment.id === id)
+}
+
+export function deleteComment(id: string): boolean {
+  const comments = getComments()
+  const initialLength = comments.length
+  const filteredComments = comments.filter(comment => comment.id !== id)
+  
+  if (filteredComments.length === initialLength) {
+    return false // Comment not found
+  }
+  
+  saveToStorage(STORAGE_KEYS.COMMENTS, filteredComments)
+  return true
+}
+
+export function getCommentsByPost(postId: string): Comment[] {
+  const comments = getComments()
+  return comments
+    .filter(comment => comment.postId === postId)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+}
+
+export function getCommentsByStatus(status: Comment['status']): Comment[] {
+  const comments = getComments()
+  return comments
+    .filter(comment => comment.status === status)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+}
+
+// Settings storage utilities
+export function getSettings(): BlogSettings | null {
+  const settings = getFromStorage<BlogSettings>(STORAGE_KEYS.SETTINGS)
+  return settings.length > 0 ? settings[0] : null
+}
+
+export function saveSettings(settings: BlogSettings): void {
+  saveToStorage(STORAGE_KEYS.SETTINGS, [settings])
+}
+
+export function getDefaultSettings(): BlogSettings {
+  return {
+    general: {
+      siteName: 'Modern Blog',
+      siteDescription: 'A modern, beautiful blog built with Next.js and TypeScript',
+      siteUrl: 'https://modernblog.com',
+      timezone: 'America/New_York',
+      language: 'en',
+    },
+    appearance: {
+      theme: 'system',
+      primaryColor: '#3B82F6',
+      fontFamily: 'Inter',
+      logoUrl: '',
+      faviconUrl: '',
+    },
+    content: {
+      postsPerPage: 10,
+      enableComments: true,
+      moderateComments: true,
+      allowGuestComments: false,
+      showAuthorBio: true,
+      showReadingTime: true,
+      enableSocialSharing: true,
+    },
+    seo: {
+      metaTitle: 'Modern Blog - Latest in Web Development',
+      metaDescription: 'Stay updated with the latest trends in web development, JavaScript, React, and more.',
+      ogImage: '',
+      twitterHandle: '@modernblog',
+      enableSitemap: true,
+      enableRobotsTxt: true,
+    },
+    analytics: {
+      googleAnalyticsId: '',
+      googleSearchConsole: '',
+      enableCookieConsent: true,
+      trackingScript: '',
+    },
+    security: {
+      enableTwoFactor: false,
+      sessionTimeout: 24,
+      enableCaptcha: true,
+      maxLoginAttempts: 5,
+    },
+    notifications: {
+      emailNotifications: true,
+      newCommentNotifications: true,
+      weeklyReports: true,
+      systemUpdates: true,
+    },
+  }
 }

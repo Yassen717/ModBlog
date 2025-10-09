@@ -1,67 +1,60 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-
-// Mock settings data
-const initialSettings = {
-  general: {
-    siteName: 'Modern Blog',
-    siteDescription: 'A modern, beautiful blog built with Next.js and TypeScript',
-    siteUrl: 'https://modernblog.com',
-    timezone: 'America/New_York',
-    language: 'en',
-  },
-  appearance: {
-    theme: 'system',
-    primaryColor: '#3B82F6',
-    fontFamily: 'Inter',
-    logoUrl: '',
-    faviconUrl: '',
-  },
-  content: {
-    postsPerPage: 10,
-    enableComments: true,
-    moderateComments: true,
-    allowGuestComments: false,
-    showAuthorBio: true,
-    showReadingTime: true,
-    enableSocialSharing: true,
-  },
-  seo: {
-    metaTitle: 'Modern Blog - Latest in Web Development',
-    metaDescription: 'Stay updated with the latest trends in web development, JavaScript, React, and more.',
-    ogImage: '',
-    twitterHandle: '@modernblog',
-    enableSitemap: true,
-    enableRobotsTxt: true,
-  },
-  analytics: {
-    googleAnalyticsId: '',
-    googleSearchConsole: '',
-    enableCookieConsent: true,
-    trackingScript: '',
-  },
-  security: {
-    enableTwoFactor: false,
-    sessionTimeout: 24,
-    enableCaptcha: true,
-    maxLoginAttempts: 5,
-  },
-  notifications: {
-    emailNotifications: true,
-    newCommentNotifications: true,
-    weeklyReports: true,
-    systemUpdates: true,
-  },
-}
+import { BlogSettings } from '@/types/blog'
+import { getSettings, saveSettings, getDefaultSettings } from '@/lib/storage'
 
 export default function SettingsAdmin() {
-  const [settings, setSettings] = useState(initialSettings)
+  const [settings, setSettings] = useState<BlogSettings>(getDefaultSettings())
   const [activeTab, setActiveTab] = useState('general')
   const [isSaving, setIsSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    loadSettings()
+  }, [])
+  
+  // Refresh settings when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadSettings()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  const loadSettings = () => {
+    try {
+      setLoading(true)
+      const existingSettings = getSettings()
+      
+      if (existingSettings) {
+        setSettings(existingSettings)
+        console.log('Loaded settings from localStorage')
+      } else {
+        // Use default settings if none exist
+        const defaultSettings = getDefaultSettings()
+        setSettings(defaultSettings)
+        // Save default settings to localStorage
+        saveSettings(defaultSettings)
+        console.log('Using default settings')
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const tabs = [
     { id: 'general', name: 'General', icon: '⚙️' },
@@ -75,20 +68,39 @@ export default function SettingsAdmin() {
 
   const handleSave = async () => {
     setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    alert('Settings saved successfully!')
+    try {
+      // Save to localStorage
+      saveSettings(settings)
+      console.log('Settings saved successfully:', settings)
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      alert('Settings saved successfully!')
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      alert('Error saving settings')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const updateSetting = (category: string, key: string, value: string | number | boolean) => {
+  const updateSetting = (category: keyof BlogSettings, key: string, value: string | number | boolean) => {
     setSettings(prev => ({
       ...prev,
       [category]: {
-        ...prev[category as keyof typeof prev],
+        ...prev[category],
         [key]: value,
       },
     }))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (

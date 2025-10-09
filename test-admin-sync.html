@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel Data Sync Test</title>
+</head>
+<body>
+    <h1>Admin Panel Data Synchronization Test</h1>
+    <p>Open browser console and run these commands to test localStorage sync:</p>
+    
+    <div style="margin: 20px 0;">
+        <h3>Test Users:</h3>
+        <button onclick="addTestUser()">Add Test User</button>
+        <button onclick="viewUsers()">View Users</button>
+        <button onclick="clearUsers()">Clear Users</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h3>Test Comments:</h3>
+        <button onclick="addTestComment()">Add Test Comment</button>
+        <button onclick="viewComments()">View Comments</button>
+        <button onclick="clearComments()">Clear Comments</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h3>Test Settings:</h3>
+        <button onclick="updateTestSettings()">Update Settings</button>
+        <button onclick="viewSettings()">View Settings</button>
+        <button onclick="clearSettings()">Clear Settings</button>
+    </div>
+    
+    <script>
+        // Users test functions
+        function addTestUser() {
+            const users = JSON.parse(localStorage.getItem('blog_users') || '[]');
+            const testUser = {
+                id: Date.now().toString(),
+                name: 'Test User',
+                email: 'test@example.com',
+                role: 'Author',
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            users.push(testUser);
+            localStorage.setItem('blog_users', JSON.stringify(users));
+            console.log('Test user added:', testUser);
+            alert('Test user added! Check console and admin panel.');
+        }
+        
+        function viewUsers() {
+            const users = JSON.parse(localStorage.getItem('blog_users') || '[]');
+            console.log('Current users in localStorage:', users);
+            alert(`Found ${users.length} users. Check console for details.`);
+        }
+        
+        function clearUsers() {
+            localStorage.removeItem('blog_users');
+            console.log('Users cleared from localStorage');
+            alert('Users cleared!');
+        }
+        
+        // Comments test functions
+        function addTestComment() {
+            const comments = JSON.parse(localStorage.getItem('blog_comments') || '[]');
+            const testComment = {
+                id: Date.now().toString(),
+                author: 'Test Commenter',
+                email: 'commenter@example.com',
+                content: 'This is a test comment to verify localStorage sync!',
+                postId: 'test-post-id',
+                postTitle: 'Test Post',
+                postSlug: 'test-post',
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            comments.push(testComment);
+            localStorage.setItem('blog_comments', JSON.stringify(comments));
+            console.log('Test comment added:', testComment);
+            alert('Test comment added! Check console and admin panel.');
+        }
+        
+        function viewComments() {
+            const comments = JSON.parse(localStorage.getItem('blog_comments') || '[]');
+            console.log('Current comments in localStorage:', comments);
+            alert(`Found ${comments.length} comments. Check console for details.`);
+        }
+        
+        function clearComments() {
+            localStorage.removeItem('blog_comments');
+            console.log('Comments cleared from localStorage');
+            alert('Comments cleared!');
+        }
+        
+        // Settings test functions
+        function updateTestSettings() {
+            const testSettings = {
+                general: {
+                    siteName: 'Test Blog Updated',
+                    siteDescription: 'Updated via test script',
+                    siteUrl: 'https://test-updated.com',
+                    timezone: 'UTC',
+                    language: 'en'
+                },
+                appearance: {
+                    theme: 'dark',
+                    primaryColor: '#FF5733',
+                    fontFamily: 'Roboto',
+                    logoUrl: '',
+                    faviconUrl: ''
+                },
+                content: {
+                    postsPerPage: 15,
+                    enableComments: true,
+                    moderateComments: false,
+                    allowGuestComments: true,
+                    showAuthorBio: false,
+                    showReadingTime: true,
+                    enableSocialSharing: false
+                },
+                seo: {
+                    metaTitle: 'Test Updated Title',
+                    metaDescription: 'Updated meta description',
+                    ogImage: '',
+                    twitterHandle: '@testblog',
+                    enableSitemap: true,
+                    enableRobotsTxt: true
+                },
+                analytics: {
+                    googleAnalyticsId: 'GA-TEST-123',
+                    googleSearchConsole: '',
+                    enableCookieConsent: false,
+                    trackingScript: ''
+                },
+                security: {
+                    enableTwoFactor: true,
+                    sessionTimeout: 12,
+                    enableCaptcha: false,
+                    maxLoginAttempts: 3
+                },
+                notifications: {
+                    emailNotifications: false,
+                    newCommentNotifications: false,
+                    weeklyReports: false,
+                    systemUpdates: true
+                }
+            };
+            localStorage.setItem('blog_settings', JSON.stringify([testSettings]));
+            console.log('Test settings updated:', testSettings);
+            alert('Test settings updated! Check console and admin panel.');
+        }
+        
+        function viewSettings() {
+            const settings = JSON.parse(localStorage.getItem('blog_settings') || '[]');
+            console.log('Current settings in localStorage:', settings);
+            alert(`Found ${settings.length} settings object. Check console for details.`);
+        }
+        
+        function clearSettings() {
+            localStorage.removeItem('blog_settings');
+            console.log('Settings cleared from localStorage');
+            alert('Settings cleared!');
+        }
+    </script>
+</body>
+</html>

@@ -1,68 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-
-// Mock comments data
-const mockComments = [
-  {
-    id: '1',
-    author: 'Alice Johnson',
-    email: 'alice@example.com',
-    content: 'This is an excellent article! The explanation of Server Components is very clear and helpful. I particularly liked the examples with code snippets.',
-    post: 'React Server Components: The Future of React',
-    postSlug: 'react-server-components-future',
-    status: 'approved',
-    date: '2024-01-15 14:30',
-    replies: 2,
-  },
-  {
-    id: '2',
-    author: 'Bob Smith',
-    email: 'bob@example.com',
-    content: 'Great tutorial! Could you explain more about the performance implications of using TypeScript advanced types in large applications?',
-    post: 'Mastering TypeScript: Advanced Types and Patterns',
-    postSlug: 'mastering-typescript-advanced-types',
-    status: 'pending',
-    date: '2024-01-15 10:15',
-    replies: 0,
-  },
-  {
-    id: '3',
-    author: 'Carol Davis',
-    email: 'carol@example.com',
-    content: 'This solved my exact problem with CSS Grid! Thank you so much for the detailed explanation.',
-    post: 'Building Responsive Layouts with CSS Grid and Flexbox',
-    postSlug: 'building-responsive-layouts-css-grid',
-    status: 'approved',
-    date: '2024-01-14 16:45',
-    replies: 1,
-  },
-  {
-    id: '4',
-    author: 'Anonymous User',
-    email: 'spam@spammer.com',
-    content: 'Check out my amazing cryptocurrency investment opportunity! Make millions in just one week!',
-    post: 'Getting Started with Next.js 14 and the App Router',
-    postSlug: 'getting-started-nextjs-14',
-    status: 'spam',
-    date: '2024-01-14 12:20',
-    replies: 0,
-  },
-  {
-    id: '5',
-    author: 'David Wilson',
-    email: 'david@example.com',
-    content: 'I love the new features in ES2024! The array grouping methods are particularly useful. When will browser support be more widespread?',
-    post: 'Modern JavaScript: ES2024 Features You Should Know',
-    postSlug: 'modern-javascript-es2024-features',
-    status: 'approved',
-    date: '2024-01-13 09:30',
-    replies: 0,
-  },
-]
+import { Comment } from '@/types/blog'
+import { getComments, saveComment, deleteComment } from '@/lib/storage'
 
 const statusColors = {
   approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -71,28 +14,96 @@ const statusColors = {
 }
 
 export default function CommentsAdmin() {
-  const [comments, setComments] = useState(mockComments)
+  const [comments, setComments] = useState<Comment[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedComments, setSelectedComments] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Load comments from localStorage on mount
+  useEffect(() => {
+    loadComments()
+  }, [])
+  
+  // Refresh comments when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadComments()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  const loadComments = () => {
+    try {
+      setLoading(true)
+      const allComments = getComments()
+      setComments(allComments)
+      console.log('Loaded comments from localStorage:', allComments.length)
+    } catch (error) {
+      console.error('Error loading comments:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredComments = comments.filter(comment => {
     const matchesSearch = comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          comment.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         comment.post.toLowerCase().includes(searchTerm.toLowerCase())
+                         comment.postTitle.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || comment.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setComments(comments.map(comment => 
-      comment.id === id ? { ...comment, status: newStatus } : comment
-    ))
+  const handleStatusChange = (id: string, newStatus: Comment['status']) => {
+    try {
+      const commentToUpdate = comments.find(comment => comment.id === id)
+      if (!commentToUpdate) return
+      
+      const updatedComment: Comment = {
+        ...commentToUpdate,
+        status: newStatus,
+        updatedAt: new Date(),
+      }
+      
+      // Save to localStorage
+      saveComment(updatedComment)
+      
+      // Update local state
+      setComments(comments.map(comment => 
+        comment.id === id ? updatedComment : comment
+      ))
+      
+      console.log('Comment status updated:', updatedComment)
+    } catch (error) {
+      console.error('Error updating comment status:', error)
+      alert('Error updating comment status')
+    }
   }
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this comment?')) {
-      setComments(comments.filter(comment => comment.id !== id))
+      try {
+        // Delete from localStorage
+        const success = deleteComment(id)
+        
+        if (success) {
+          // Update local state
+          setComments(comments.filter(comment => comment.id !== id))
+          console.log('Comment deleted successfully:', id)
+        } else {
+          alert('Failed to delete comment - comment not found')
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error)
+        alert('Error deleting comment')
+      }
     }
   }
 
@@ -104,16 +115,42 @@ export default function CommentsAdmin() {
 
     if (action === 'delete') {
       if (confirm(`Are you sure you want to delete ${selectedComments.length} comments?`)) {
-        setComments(comments.filter(comment => !selectedComments.includes(comment.id)))
-        setSelectedComments([])
+        try {
+          // Delete from localStorage
+          selectedComments.forEach(id => deleteComment(id))
+          
+          // Update local state
+          setComments(comments.filter(comment => !selectedComments.includes(comment.id)))
+          setSelectedComments([])
+          console.log('Bulk delete completed')
+        } catch (error) {
+          console.error('Error in bulk delete:', error)
+          alert('Error deleting comments')
+        }
       }
     } else {
-      setComments(comments.map(comment => 
-        selectedComments.includes(comment.id) 
-          ? { ...comment, status: action } 
-          : comment
-      ))
-      setSelectedComments([])
+      try {
+        // Update status for selected comments
+        const updatedComments = comments.map(comment => {
+          if (selectedComments.includes(comment.id)) {
+            const updated = {
+              ...comment,
+              status: action as Comment['status'],
+              updatedAt: new Date(),
+            }
+            saveComment(updated)
+            return updated
+          }
+          return comment
+        })
+        
+        setComments(updatedComments)
+        setSelectedComments([])
+        console.log('Bulk status update completed')
+      } catch (error) {
+        console.error('Error in bulk status update:', error)
+        alert('Error updating comment status')
+      }
     }
   }
 
@@ -131,6 +168,14 @@ export default function CommentsAdmin() {
     } else {
       setSelectedComments(filteredComments.map(comment => comment.id))
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -277,9 +322,9 @@ export default function CommentsAdmin() {
                       <p className="text-sm text-gray-900 dark:text-white line-clamp-3">
                         {comment.content}
                       </p>
-                      {comment.replies > 0 && (
+                      {comment.replies && comment.replies.length > 0 && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          {comment.replies} replies
+                          {comment.replies.length} replies
                         </p>
                       )}
                     </div>
@@ -297,7 +342,7 @@ export default function CommentsAdmin() {
                   <td className="px-6 py-4">
                     <div className="max-w-xs">
                       <div className="text-sm text-gray-900 dark:text-white truncate">
-                        {comment.post}
+                        {comment.postTitle}
                       </div>
                       <Button variant="ghost" size="sm" asChild>
                         <a href={`/blog/${comment.postSlug}`} className="text-xs text-blue-600 dark:text-blue-400">
@@ -309,7 +354,7 @@ export default function CommentsAdmin() {
                   <td className="px-6 py-4">
                     <select
                       value={comment.status}
-                      onChange={(e) => handleStatusChange(comment.id, e.target.value)}
+                      onChange={(e) => handleStatusChange(comment.id, e.target.value as Comment['status'])}
                       className={`text-xs px-2 py-1 rounded-full border-0 ${statusColors[comment.status as keyof typeof statusColors]}`}
                     >
                       <option value="approved">Approved</option>
@@ -318,7 +363,7 @@ export default function CommentsAdmin() {
                     </select>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {comment.date}
+                    {comment.createdAt.toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">

@@ -1,56 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Category } from '@/types/blog'
+import { getCategories, saveCategory } from '@/lib/storage'
+import { getAllPosts } from '@/lib/storage'
 
-// Mock categories data
-const mockCategories = [
-  {
-    id: '1',
-    name: 'Web Development',
-    slug: 'web-development',
-    description: 'Articles about modern web development techniques and best practices',
-    color: '#3B82F6',
-    postCount: 8,
-  },
-  {
-    id: '2',
-    name: 'JavaScript',
-    slug: 'javascript',
-    description: 'Deep dives into JavaScript, TypeScript, and related technologies',
-    color: '#F59E0B',
-    postCount: 6,
-  },
-  {
-    id: '3',
-    name: 'React',
-    slug: 'react',
-    description: 'React tutorials, tips, and advanced patterns',
-    color: '#10B981',
-    postCount: 4,
-  },
-  {
-    id: '4',
-    name: 'Next.js',
-    slug: 'nextjs',
-    description: 'Next.js features, optimization, and deployment strategies',
-    color: '#8B5CF6',
-    postCount: 3,
-  },
-  {
-    id: '5',
-    name: 'CSS',
-    slug: 'css',
-    description: 'Modern CSS techniques, animations, and design systems',
-    color: '#EF4444',
-    postCount: 3,
-  },
-]
+// Extended category type with post count for admin display
+type CategoryWithCount = Category & { postCount: number }
 
 export default function CategoriesAdmin() {
-  const [categories, setCategories] = useState(mockCategories)
+  const [categories, setCategories] = useState<CategoryWithCount[]>([])
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -60,32 +22,90 @@ export default function CategoriesAdmin() {
     color: '#3B82F6',
   })
 
+  // Load categories from localStorage on mount
+  useEffect(() => {
+    loadCategories()
+  }, [])
+  
+  // Refresh categories when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCategories()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  const loadCategories = () => {
+    try {
+      const allCategories = getCategories()
+      const allPosts = getAllPosts()
+      
+      // Add post counts to categories
+      const categoriesWithCounts = allCategories.map(category => ({
+        ...category,
+        postCount: allPosts.filter(post => post.category.id === category.id).length
+      }))
+      
+      setCategories(categoriesWithCounts)
+      console.log('Loaded categories from localStorage:', categoriesWithCounts.length)
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (editingId) {
       // Update category
+      const updatedCategory: Category = {
+        id: editingId,
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        color: formData.color
+      }
+      
+      // Save to localStorage
+      saveCategory(updatedCategory)
+      
+      // Update local state
       setCategories(categories.map(cat => 
         cat.id === editingId 
-          ? { ...cat, ...formData, postCount: cat.postCount }
+          ? { ...updatedCategory, postCount: cat.postCount }
           : cat
       ))
       setEditingId(null)
     } else {
       // Create new category
-      const newCategory = {
-        id: (categories.length + 1).toString(),
-        ...formData,
-        postCount: 0,
+      const newCategory: Category = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        color: formData.color
       }
-      setCategories([...categories, newCategory])
+      
+      // Save to localStorage
+      saveCategory(newCategory)
+      
+      // Update local state
+      setCategories([...categories, { ...newCategory, postCount: 0 }])
       setIsCreating(false)
     }
     
     setFormData({ name: '', slug: '', description: '', color: '#3B82F6' })
+    console.log('Category saved successfully')
   }
 
-  const handleEdit = (category: typeof mockCategories[0]) => {
+  const handleEdit = (category: CategoryWithCount) => {
     setEditingId(category.id)
     setFormData({
       name: category.name,
@@ -98,7 +118,22 @@ export default function CategoriesAdmin() {
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-      setCategories(categories.filter(cat => cat.id !== id))
+      try {
+        // Remove from localStorage by filtering and saving
+        const allCategories = getCategories()
+        const filteredCategories = allCategories.filter(cat => cat.id !== id)
+        
+        // Save the filtered categories back
+        // Since we need to save all categories, we'll overwrite localStorage
+        localStorage.setItem('blog_categories', JSON.stringify(filteredCategories))
+        
+        // Update local state
+        setCategories(categories.filter(cat => cat.id !== id))
+        console.log('Category deleted successfully:', id)
+      } catch (error) {
+        console.error('Error deleting category:', error)
+        alert('Error deleting category')
+      }
     }
   }
 

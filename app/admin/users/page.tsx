@@ -1,57 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { User } from '@/types/blog'
+import { getUsers, saveUser, deleteUser, getAllPosts } from '@/lib/storage'
 
-// Mock users data
-const mockUsers = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'Administrator',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face&auto=format&q=80',
-    status: 'active',
-    lastLogin: '2024-01-15 14:30',
-    posts: 24,
-    comments: 89,
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'Editor',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b626e9d5?w=50&h=50&fit=crop&crop=face&auto=format&q=80',
-    status: 'active',
-    lastLogin: '2024-01-14 09:15',
-    posts: 8,
-    comments: 45,
-  },
-  {
-    id: '3',
-    name: 'Bob Wilson',
-    email: 'bob@example.com',
-    role: 'Author',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop&crop=face&auto=format&q=80',
-    status: 'inactive',
-    lastLogin: '2024-01-10 16:45',
-    posts: 3,
-    comments: 12,
-  },
-  {
-    id: '4',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    role: 'Subscriber',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face&auto=format&q=80',
-    status: 'active',
-    lastLogin: '2024-01-13 11:20',
-    posts: 0,
-    comments: 23,
-  },
-]
+// Extended user type with post/comment counts for admin display
+type UserWithCounts = User & { posts: number; comments: number }
 
 const roleColors = {
   Administrator: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
@@ -61,35 +19,172 @@ const roleColors = {
 }
 
 export default function UsersAdmin() {
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState<UserWithCounts[]>([])
   const [isInviting, setIsInviting] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState('Subscriber')
+  const [inviteRole, setInviteRole] = useState<User['role']>('Subscriber')
+  const [loading, setLoading] = useState(true)
+
+  // Load users from localStorage on mount
+  useEffect(() => {
+    loadUsers()
+  }, [])
+  
+  // Refresh users when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadUsers()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  const loadUsers = () => {
+    try {
+      setLoading(true)
+      const allUsers = getUsers()
+      const allPosts = getAllPosts()
+      
+      // Add post counts to users (comments would need to be implemented)
+      const usersWithCounts: UserWithCounts[] = allUsers.map(user => ({
+        ...user,
+        posts: allPosts.filter(post => post.author.id === user.id).length,
+        comments: 0, // TODO: implement comments count when comments are integrated
+      }))
+      
+      setUsers(usersWithCounts)
+      console.log('Loaded users from localStorage:', usersWithCounts.length)
+    } catch (error) {
+      console.error('Error loading users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate sending invitation
-    alert(`Invitation sent to ${inviteEmail} as ${inviteRole}`)
-    setInviteEmail('')
-    setIsInviting(false)
+    
+    // Create new user
+    const newUser: User = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      name: inviteEmail.split('@')[0], // Use email prefix as name initially
+      email: inviteEmail,
+      role: inviteRole,
+      status: 'active',
+      lastLogin: undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    
+    try {
+      // Save to localStorage
+      saveUser(newUser)
+      
+      // Update local state
+      const newUserWithCounts: UserWithCounts = {
+        ...newUser,
+        posts: 0,
+        comments: 0,
+      }
+      setUsers([...users, newUserWithCounts])
+      
+      setInviteEmail('')
+      setIsInviting(false)
+      console.log('User invited successfully:', newUser)
+    } catch (error) {
+      console.error('Error inviting user:', error)
+      alert('Error inviting user')
+    }
   }
 
-  const handleStatusChange = (userId: string, newStatus: string) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, status: newStatus } : user
-    ))
+  const handleStatusChange = (userId: string, newStatus: 'active' | 'inactive') => {
+    try {
+      const userToUpdate = users.find(user => user.id === userId)
+      if (!userToUpdate) return
+      
+      const updatedUser: User = {
+        ...userToUpdate,
+        status: newStatus,
+        updatedAt: new Date(),
+      }
+      
+      // Save to localStorage
+      saveUser(updatedUser)
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === userId 
+          ? { ...user, status: newStatus }
+          : user
+      ))
+      
+      console.log('User status updated:', updatedUser)
+    } catch (error) {
+      console.error('Error updating user status:', error)
+      alert('Error updating user status')
+    }
   }
 
-  const handleRoleChange = (userId: string, newRole: string) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, role: newRole } : user
-    ))
+  const handleRoleChange = (userId: string, newRole: User['role']) => {
+    try {
+      const userToUpdate = users.find(user => user.id === userId)
+      if (!userToUpdate) return
+      
+      const updatedUser: User = {
+        ...userToUpdate,
+        role: newRole,
+        updatedAt: new Date(),
+      }
+      
+      // Save to localStorage
+      saveUser(updatedUser)
+      
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === userId 
+          ? { ...user, role: newRole }
+          : user
+      ))
+      
+      console.log('User role updated:', updatedUser)
+    } catch (error) {
+      console.error('Error updating user role:', error)
+      alert('Error updating user role')
+    }
   }
 
   const handleDelete = (userId: string) => {
     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setUsers(users.filter(user => user.id !== userId))
+      try {
+        // Delete from localStorage
+        const success = deleteUser(userId)
+        
+        if (success) {
+          // Update local state
+          setUsers(users.filter(user => user.id !== userId))
+          console.log('User deleted successfully:', userId)
+        } else {
+          alert('Failed to delete user - user not found')
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error)
+        alert('Error deleting user')
+      }
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -160,7 +255,7 @@ export default function UsersAdmin() {
                 </label>
                 <select
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
+                  onChange={(e) => setInviteRole(e.target.value as User['role'])}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
                   <option value="Subscriber">Subscriber</option>
@@ -215,7 +310,7 @@ export default function UsersAdmin() {
                     <div className="flex items-center">
                       <Image
                         className="h-10 w-10 rounded-full"
-                        src={user.avatar}
+                        src={user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face&auto=format&q=80'}
                         alt={user.name}
                         width={40}
                         height={40}
@@ -233,7 +328,7 @@ export default function UsersAdmin() {
                   <td className="px-6 py-4">
                     <select
                       value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      onChange={(e) => handleRoleChange(user.id, e.target.value as User['role'])}
                       className={`text-xs px-2 py-1 rounded-full border-0 ${roleColors[user.role as keyof typeof roleColors]}`}
                     >
                       <option value="Subscriber">Subscriber</option>

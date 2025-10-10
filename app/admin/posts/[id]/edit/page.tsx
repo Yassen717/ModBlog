@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { sampleCategories, sampleAuthor } from '@/lib/sample-data'
 import { Category, Post } from '@/types/blog'
+import { getCategories } from '@/lib/storage'
 
 interface EditPostPageProps {
   params: Promise<{ id: string }>
@@ -42,6 +43,21 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     }
     loadData()
   }, [])
+  
+  // Refresh categories when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCategories()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   const loadPost = async (id: string) => {
     try {
@@ -74,13 +90,14 @@ export default function EditPostPage({ params }: EditPostPageProps) {
 
   const loadCategories = async () => {
     try {
-      const response = await fetch('/api/categories')
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Categories loaded from API:', data.categories)
-        setCategories(data.categories)
+      // Get categories directly from localStorage
+      const allCategories = getCategories()
+      
+      if (allCategories.length > 0) {
+        console.log('Categories loaded from localStorage:', allCategories)
+        setCategories(allCategories)
       } else {
-        console.log('API failed, using sample categories')
+        console.log('No categories in localStorage, using sample categories')
         setCategories(sampleCategories)
       }
     } catch (error) {

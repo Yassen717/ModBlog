@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Comments', href: '/admin/comments', icon: '💬' },
   { name: 'Analytics', href: '/admin/analytics', icon: '📈' },
   { name: 'Settings', href: '/admin/settings', icon: '⚙️' },
+  { name: 'Data Reset', href: '/admin/data-reset', icon: '🔄' },
 ]
 
 export default function AdminLayout({

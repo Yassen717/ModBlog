@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
         email: 'admin@modernblog.com',
         name: 'Admin User',
         role: 'admin',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&auto=format&q=80'
+        avatar: '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'
       },
       {
         id: '2',
         email: 'editor@modernblog.com',
         name: 'Editor User',
         role: 'editor',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b626e9d5?w=100&h=100&fit=crop&crop=face&auto=format&q=80'
+        avatar: '/images/markus-spiske-MI9-PY5cyNs-unsplash.webp'
       }
     ]
 

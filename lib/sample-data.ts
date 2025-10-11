@@ -6,7 +6,7 @@ export const sampleAuthor: Author = {
   id: '1',
   name: 'John Doe',
   bio: 'Full-stack developer passionate about modern web technologies, clean code, and creating amazing user experiences.',
-  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&auto=format&q=80',
+  avatar: '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp',
   social: {
     twitter: 'https://twitter.com/johndoe',
     github: 'https://github.com/johndoe',
@@ -980,13 +980,22 @@ export const samplePosts: Post[] = samplePostsData.map((postData, index) => {
   const category = sampleCategories.find(cat => cat.id === postData.categoryId)!
   const publishedAt = new Date(Date.now() - (index * 7 * 24 * 60 * 60 * 1000)) // Each post 1 week apart
   
+  // Map of post images (we have 7 images for different posts)
+  const postImages = [
+    '/images/markus-spiske-hvSr_CVecVI-unsplash.webp',
+    '/images/ferenc-almasi-eYpcLDXHVb0-unsplash.webp',
+    '/images/fotis-fotopoulos-DuHKoV44prg-unsplash.webp',
+    '/images/christopher-gower-m_HRfLhgABo-unsplash.webp',
+    '/images/farzad-p-xSl33Wxyc-unsplash.webp',
+  ];
+  
   return {
     id: (index + 1).toString(),
     title: postData.title,
     slug: generateSlug(postData.title),
     excerpt: postData.excerpt,
     content: postData.content,
-    featuredImage: `https://images.unsplash.com/photo-${1600000000000 + index * 100000}?w=800&h=400&fit=crop&crop=entropy&auto=format&q=80`,
+    featuredImage: postImages[index % postImages.length],
     author: sampleAuthor,
     category,
     tags: postData.tags,
@@ -1006,12 +1015,37 @@ export function initializeSampleData() {
   const existingAuthors = localStorage.getItem('blog_authors')
   const existingCategories = localStorage.getItem('blog_categories')
   
-  // Only initialize if no data exists
-  if (!existingPosts) {
+  // Check if we need to migrate from Unsplash URLs to local images
+  let needsMigration = false
+  if (existingPosts) {
+    try {
+      const posts = JSON.parse(existingPosts)
+      if (posts.length > 0 && posts[0].featuredImage?.includes('unsplash.com')) {
+        needsMigration = true
+      }
+    } catch (e) {
+      needsMigration = true
+    }
+  }
+  
+  if (existingAuthors) {
+    try {
+      const authors = JSON.parse(existingAuthors)
+      if (authors.length > 0 && authors[0].avatar?.includes('unsplash.com')) {
+        needsMigration = true
+      }
+    } catch (e) {
+      needsMigration = true
+    }
+  }
+  
+  // Force refresh if migration needed or no data exists
+  if (!existingPosts || needsMigration) {
+    console.log('Initializing/migrating to local images...')
     localStorage.setItem('blog_posts', JSON.stringify(samplePosts))
   }
   
-  if (!existingAuthors) {
+  if (!existingAuthors || needsMigration) {
     localStorage.setItem('blog_authors', JSON.stringify([sampleAuthor]))
   }
   

@@ -310,7 +310,7 @@ export default function UsersAdmin() {
                     <div className="flex items-center">
                       <Image
                         className="h-10 w-10 rounded-full"
-                        src={user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face&auto=format&q=80'}
+                        src={user.avatar || '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'}
                         alt={user.name}
                         width={40}
                         height={40}

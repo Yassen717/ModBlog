@@ -96,7 +96,7 @@ export default function AboutPage() {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                 <div className="flex-shrink-0">
                   <Image
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face&auto=format&q=80"
+                    src="/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp"
                     alt="John Doe"
                     width={200}
                     height={200}

@@ -3,9 +3,21 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useRouter } from 'next/navigation'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const router = useRouter()
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-gray-800 dark:bg-gray-950/95 dark:supports-[backdrop-filter]:bg-gray-950/60">
@@ -48,9 +60,26 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center space-x-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/search">Search</Link>
-          </Button>
+          {/* Search Form */}
+          <form onSubmit={handleSearch} className="relative">
+            <Input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-40 lg:w-64 pl-3 pr-10 py-1 text-sm rounded-full border-gray-300 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+            />
+            <button 
+              type="submit"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Search"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </form>
+          
           <Button size="sm" asChild>
             <Link href="/admin">Admin</Link>
           </Button>
@@ -120,10 +149,30 @@ export function Header() {
             >
               About
             </Link>
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
-              <Button variant="ghost" size="sm" className="w-full justify-start" asChild>
-                <Link href="/search" onClick={() => setIsMenuOpen(false)}>Search</Link>
-              </Button>
+            
+            {/* Mobile Search Form */}
+            <form onSubmit={handleSearch} className="pt-4">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2 text-sm rounded-full border-gray-300 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-0"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  aria-label="Search"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+            
+            <div className="pt-4 space-y-2">
               <Button size="sm" className="w-full" asChild>
                 <Link href="/admin" onClick={() => setIsMenuOpen(false)}>Admin</Link>
               </Button>

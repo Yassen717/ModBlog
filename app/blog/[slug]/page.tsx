@@ -9,9 +9,9 @@ import { PostNavigation } from '@/components/blog/post-navigation'
 import { RelatedPosts } from '@/components/blog/related-posts'
 
 interface BlogPostPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export default function BlogPostPage({ params }: BlogPostPageProps) {
@@ -22,11 +22,15 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     next: Post | null
   }>({ previous: null, next: null })
   const [loading, setLoading] = useState(true)
+  const [resolvedSlug, setResolvedSlug] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadPost = () => {
+    const loadPost = async () => {
       try {
-        const foundPost = getPostBySlug(params.slug)
+        const resolvedParams = await params
+        setResolvedSlug(resolvedParams.slug)
+        
+        const foundPost = getPostBySlug(resolvedParams.slug)
         
         if (!foundPost) {
           notFound()
@@ -60,7 +64,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     }
 
     loadPost()
-  }, [params.slug])
+  }, [params])
 
   if (loading) {
     return (

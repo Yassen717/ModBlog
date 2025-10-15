@@ -6,9 +6,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
 import { sampleCategories, sampleAuthor } from '@/lib/sample-data'
 import { Category, Post } from '@/types/blog'
-import { getCategories } from '@/lib/storage'
+import { getCategories, getPostById, savePost, deletePost } from '@/lib/storage'
 
 interface EditPostPageProps {
   params: Promise<{ id: string }>
@@ -32,6 +33,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     status: 'draft' as 'draft' | 'published'
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   // Load post and categories on mount
   useEffect(() => {
@@ -62,10 +64,11 @@ export default function EditPostPage({ params }: EditPostPageProps) {
   const loadPost = async (id: string) => {
     try {
       setLoadingPost(true)
-      const response = await fetch(`/api/posts/${id}`)
-      if (response.ok) {
-        const data = await response.json()
-        const post = data.post
+      
+      // Get post directly from localStorage instead of API
+      const post = getPostById(id)
+      
+      if (post) {
         setPost(post)
         setFormData({
           title: post.title,
@@ -161,10 +164,13 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       
       if (!selectedCategory) {
         setErrors({ categoryId: 'Invalid category selected' })
+        setLoading(false)
         return
       }
 
-      const postData = {
+      // Create updated post object
+      const updatedPost: Post = {
+        id: postId,
         title: formData.title,
         slug: formData.slug,
         excerpt: formData.excerpt,
@@ -175,26 +181,21 @@ export default function EditPostPage({ params }: EditPostPageProps) {
           .split(',')
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0),
-        status: formData.status
+        status: formData.status,
+        author: post?.author || sampleAuthor, // Keep the original author
+        publishedAt: post?.publishedAt || new Date(),
+        updatedAt: new Date(),
+        readingTime: Math.ceil(formData.content.length / 200) // Simple reading time calculation
       }
 
-      const response = await fetch(`/api/posts/${postId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(postData)
-      })
-
-      if (response.ok) {
-        router.push('/admin/posts')
-      } else {
-        const errorData = await response.json()
-        setErrors({ submit: errorData.error || 'Failed to update post' })
-      }
+      // Save to localStorage directly
+      savePost(updatedPost)
+      
+      console.log('Post updated successfully:', updatedPost)
+      router.push('/admin/posts')
     } catch (error) {
       console.error('Error updating post:', error)
-      setErrors({ submit: 'Network error. Please try again.' })
+      setErrors({ submit: 'Error updating post. Please try again.' })
     } finally {
       setLoading(false)
     }
@@ -217,16 +218,16 @@ export default function EditPostPage({ params }: EditPostPageProps) {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-      return
-    }
+    setIsDeleteModalOpen(true)
+  }
 
+  const handleDeleteConfirm = async () => {
     try {
-      const response = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
+      // Delete from localStorage directly
+      const success = deletePost(postId)
+      
+      if (success) {
+        console.log('Post deleted successfully:', postId)
         router.push('/admin/posts')
       } else {
         alert('Failed to delete post')
@@ -234,6 +235,8 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     } catch (error) {
       console.error('Error deleting post:', error)
       alert('Error deleting post')
+    } finally {
+      setIsDeleteModalOpen(false)
     }
   }
 
@@ -525,6 +528,17 @@ export default function EditPostPage({ params }: EditPostPageProps) {
           </Card>
         </div>
       </div>
+
+      {/* Delete Modal */}
+      <Modal
+        title="Delete Post"
+        description={`Are you sure you want to delete the post "${post?.title || ''}"? This action cannot be undone.`}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        confirmText="Delete"
+        confirmVariant="default"
+      />
     </div>
   )
 }

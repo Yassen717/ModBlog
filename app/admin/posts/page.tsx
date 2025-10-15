@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Modal } from '@/components/ui/modal'
 import { Post } from '@/types/blog'
 import { getAllPosts, savePost, deletePost } from '@/lib/storage'
 
@@ -18,6 +19,8 @@ export default function PostsAdmin() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [postToDelete, setPostToDelete] = useState<{id: string, title: string} | null>(null)
 
   // Fetch posts from localStorage directly instead of API
   useEffect(() => {
@@ -62,23 +65,31 @@ export default function PostsAdmin() {
     return matchesSearch && matchesStatus
   })
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this post?')) {
-      try {
-        // Delete from localStorage directly
-        const success = deletePost(id)
-        
-        if (success) {
-          // Update the state immediately
-          setPosts(posts.filter(post => post.id !== id))
-          console.log('Post deleted successfully:', id)
-        } else {
-          alert('Failed to delete post - post not found')
-        }
-      } catch (error) {
-        console.error('Error deleting post:', error)
-        alert('Error deleting post')
+  const handleDeleteClick = (id: string, title: string) => {
+    setPostToDelete({id, title});
+    setIsDeleteModalOpen(true);
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!postToDelete) return;
+    
+    try {
+      // Delete from localStorage directly
+      const success = deletePost(postToDelete.id);
+      
+      if (success) {
+        // Update the state immediately without page refresh
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete.id));
+        console.log('Post deleted successfully:', postToDelete.id);
+      } else {
+        alert('Failed to delete post - post not found');
       }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Error deleting post');
+    } finally {
+      setPostToDelete(null);
+      setIsDeleteModalOpen(false);
     }
   }
 
@@ -255,7 +266,7 @@ export default function PostsAdmin() {
                       <Button variant="ghost" size="sm" asChild>
                         <Link href={`/blog/${post.slug}`}>👁️</Link>
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(post.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(post.id, post.title)} type="button">
                         🗑️
                       </Button>
                     </div>
@@ -284,6 +295,17 @@ export default function PostsAdmin() {
           </Button>
         </Card>
       )}
+
+      {/* Delete Modal */}
+      <Modal
+        title="Delete Post"
+        description={`Are you sure you want to delete the post "${postToDelete?.title || ''}"? This action cannot be undone.`}
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        confirmText="Delete"
+        confirmVariant="default"
+      />
     </div>
   )
 }

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { sampleCategories, sampleAuthor } from '@/lib/sample-data'
-import { Category } from '@/types/blog'
-import { getCategories } from '@/lib/storage'
+import { Category, Post } from '@/types/blog'
+import { getCategories, savePost } from '@/lib/storage'
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -144,10 +144,13 @@ export default function CreatePostPage() {
       
       if (!selectedCategory) {
         setErrors({ categoryId: 'Invalid category selected' })
+        setLoading(false)
         return
       }
 
-      const postData = {
+      // Create new post object
+      const newPost: Post = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         title: formDataToSubmit.title,
         slug: formDataToSubmit.slug,
         excerpt: formDataToSubmit.excerpt,
@@ -160,54 +163,27 @@ export default function CreatePostPage() {
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0),
         status: formDataToSubmit.status,
-        publishedAt: formDataToSubmit.status === 'published' ? new Date().toISOString() : undefined
+        publishedAt: new Date(),
+        updatedAt: new Date(),
+        readingTime: Math.ceil(formDataToSubmit.content.length / 200) // Simple reading time calculation
       }
 
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(postData)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Post created successfully:', data)
-        
-        // If the API tells us to persist, save to localStorage
-        if (data.persist && data.post) {
-          try {
-            // Get existing posts from localStorage
-            const existingPosts = JSON.parse(localStorage.getItem('blog_posts') || '[]')
-            
-            // Add the new post
-            existingPosts.push(data.post)
-            
-            // Save back to localStorage
-            localStorage.setItem('blog_posts', JSON.stringify(existingPosts))
-            
-            console.log('Post saved to localStorage:', data.post)
-          } catch (error) {
-            console.error('Failed to save post to localStorage:', error)
-          }
-        }
-        
-        // Clear any previous errors and show success
-        const statusText = formDataToSubmit.status === 'published' ? 'published' : 'saved as draft'
-        setErrors({ success: `Post ${statusText} successfully! Redirecting...` })
-        
-        // Add a small delay to show the success state
-        setTimeout(() => {
-          router.push('/admin/posts')
-        }, 1500)
-      } else {
-        const errorData = await response.json()
-        setErrors({ submit: errorData.error || 'Failed to create post' })
-      }
+      // Save directly to localStorage
+      savePost(newPost)
+      
+      console.log('Post created successfully:', newPost)
+      
+      // Clear any previous errors and show success
+      const statusText = formDataToSubmit.status === 'published' ? 'published' : 'saved as draft'
+      setErrors({ success: `Post ${statusText} successfully! Redirecting...` })
+      
+      // Add a small delay to show the success state
+      setTimeout(() => {
+        router.push('/admin/posts')
+      }, 1500)
     } catch (error) {
       console.error('Error creating post:', error)
-      setErrors({ submit: 'Network error. Please try again.' })
+      setErrors({ submit: 'Error creating post. Please try again.' })
     } finally {
       setLoading(false)
     }

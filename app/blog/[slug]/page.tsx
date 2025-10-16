@@ -7,6 +7,7 @@ import { getPostBySlug, getPublishedPosts } from '@/lib/storage'
 import { PostDetail } from '@/components/blog/post-detail'
 import { PostNavigation } from '@/components/blog/post-navigation'
 import { RelatedPosts } from '@/components/blog/related-posts'
+import { CommentsSection } from '@/components/blog/comments-section'
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -81,6 +82,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div>
       <PostDetail post={post} />
+      <CommentsSection 
+        postId={post.id} 
+        postTitle={post.title} 
+        postSlug={post.slug} 
+      />
       <PostNavigation previous={navigation.previous} next={navigation.next} />
       {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
     </div>

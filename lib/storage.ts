@@ -113,9 +113,7 @@ export function updatePost(id: string, postData: Partial<Post>): Post | null {
 }
 
 // Generate unique ID
-function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9)
-}
+import { generateId } from '@/lib/utils'
 
 export function getPostBySlug(slug: string): Post | undefined {
   const posts = getPosts()

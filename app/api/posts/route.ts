@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Post } from '@/types/blog'
 import { getPublishedPosts, getAllPosts, createPost } from '@/lib/storage'
-import { generateSlug, calculateReadingTime } from '@/lib/utils'
+import { generateSlug, calculateReadingTime, generateId } from '@/lib/utils'
 import { samplePosts } from '@/lib/sample-data'
 
 // GET /api/posts - Get all posts (with optional filters)
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const readingTime = calculateReadingTime(body.content)
 
     // Generate unique ID
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    const id = generateId()
 
     const newPost: Post = {
       id,

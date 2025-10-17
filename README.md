@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Modern Blog (ModBlog)
+
+A full-featured, modern blog platform built with Next.js 15, React 19, TypeScript, and Tailwind CSS. This project demonstrates a complete blog solution with both public-facing pages and an admin dashboard for content management.
+
+## Features
+
+- **Public Blog**: Homepage with featured posts, category browsing, and search functionality
+- **Admin Dashboard**: Complete content management system with posts, categories, comments, users, and analytics
+- **Authentication**: Role-based access control (Admin/Editor roles)
+- **Responsive Design**: Mobile-first design that works on all device sizes
+- **Dark Mode**: Theme switching with system preference detection
+- **Client-Side Storage**: Uses localStorage for data persistence (no database required)
+- **SEO Optimized**: Proper metadata and semantic HTML structure
+
+## Tech Stack
+
+- **Framework**: [Next.js 15.5.3](https://nextjs.org) with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Custom component library with Radix UI primitives
+- **Build Tool**: Turbopack for fast development and builds
+- **Fonts**: Geist font family via `next/font`
+- **State Management**: React Context API
 
 ## Getting Started
 
-First, run the development server:
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the public blog.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To access the admin dashboard, navigate to [http://localhost:3000/admin](http://localhost:3000/admin) and log in with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Admin**: admin@modernblog.com / admin123
+- **Editor**: editor@modernblog.com / editor123
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/                 # Next.js App Router structure
+├── admin/          # Admin dashboard pages
+├── api/            # API routes for authentication and CRUD operations
+├── blog/           # Public blog pages
+├── login/          # Authentication pages
+├── layout.tsx      # Root layout with metadata
+├── page.tsx        # Homepage
+components/         # Reusable UI components
+├── blog/           # Blog-specific components
+├── layout/         # Site layout components
+├── ui/             # Generic UI components
+hooks/              # Custom React hooks
+lib/                # Utility functions and data storage
+types/              # TypeScript type definitions
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Available Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `npm run dev` - Starts the development server with Turbopack
+- `npm run build` - Builds the application for production
+- `npm run start` - Starts the production server
+- `npm run lint` - Runs ESLint for code quality checks
 
-## Deploy on Vercel
+## Data Management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project uses localStorage for data persistence instead of a traditional database. All blog posts, categories, users, and comments are stored in the browser's localStorage, making it easy to run without any backend setup.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Key storage utilities:
+- `getPosts()` / `savePost()` - Manage blog posts
+- `getCategories()` / `saveCategory()` - Manage categories
+- `getUsers()` / `saveUser()` - Manage users
+- `getComments()` / `saveComment()` - Manage comments
+
+## Admin Dashboard
+
+The admin dashboard provides a complete content management system:
+
+- **Posts**: Create, edit, and manage blog posts
+- **Categories**: Organize content with categories
+- **Comments**: Moderate user comments
+- **Users**: Manage user accounts and roles
+- **Analytics**: View blog statistics and metrics
+- **Settings**: Configure site-wide settings
+
+## Deployment
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new) from the creators of Next.js.
+
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

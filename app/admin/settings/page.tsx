@@ -58,7 +58,7 @@ export default function SettingsAdmin() {
 
   const tabs = [
     { id: 'general', name: 'General', icon: '⚙️' },
-    { id: 'appearance', name: 'Appearance', icon: '🎨' },
+    // Removed appearance tab as requested
     { id: 'content', name: 'Content', icon: '📝' },
     { id: 'seo', name: 'SEO', icon: '🔍' },
     { id: 'analytics', name: 'Analytics', icon: '📊' },
@@ -215,87 +215,6 @@ export default function SettingsAdmin() {
               </div>
             )}
 
-            {/* Appearance Settings */}
-            {activeTab === 'appearance' && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Appearance Settings</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Theme
-                    </label>
-                    <select
-                      value={settings.appearance.theme}
-                      onChange={(e) => updateSetting('appearance', 'theme', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Primary Color
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="color"
-                        value={settings.appearance.primaryColor}
-                        onChange={(e) => updateSetting('appearance', 'primaryColor', e.target.value)}
-                        className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded-md"
-                      />
-                      <Input
-                        type="text"
-                        value={settings.appearance.primaryColor}
-                        onChange={(e) => updateSetting('appearance', 'primaryColor', e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Font Family
-                  </label>
-                  <select
-                    value={settings.appearance.fontFamily}
-                    onChange={(e) => updateSetting('appearance', 'fontFamily', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  >
-                    <option value="Inter">Inter</option>
-                    <option value="Roboto">Roboto</option>
-                    <option value="Open Sans">Open Sans</option>
-                    <option value="Montserrat">Montserrat</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Logo URL
-                    </label>
-                    <Input
-                      type="url"
-                      value={settings.appearance.logoUrl}
-                      onChange={(e) => updateSetting('appearance', 'logoUrl', e.target.value)}
-                      placeholder="https://example.com/logo.png"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Favicon URL
-                    </label>
-                    <Input
-                      type="url"
-                      value={settings.appearance.faviconUrl}
-                      onChange={(e) => updateSetting('appearance', 'faviconUrl', e.target.value)}
-                      placeholder="https://example.com/favicon.ico"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Content Settings */}
             {activeTab === 'content' && (
               <div className="space-y-6">
@@ -426,7 +345,7 @@ export default function SettingsAdmin() {
             )}
 
             {/* Placeholder for other tabs */}
-            {!['general', 'appearance', 'content', 'seo'].includes(activeTab) && (
+            {!['general', 'content', 'seo'].includes(activeTab) && (
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">🚧</div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -49,8 +49,6 @@ export default function PostsAdmin() {
       // Get posts directly from localStorage
       const allPosts = getAllPosts()
       setPosts(allPosts)
-      
-      console.log('Loaded posts from localStorage:', allPosts.length)
     } catch (error) {
       console.error('Error fetching posts:', error)
     } finally {
@@ -80,7 +78,7 @@ export default function PostsAdmin() {
       if (success) {
         // Update the state immediately without page refresh
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete.id));
-        console.log('Post deleted successfully:', postToDelete.id);
+
       } else {
         alert('Failed to delete post - post not found');
       }
@@ -106,7 +104,10 @@ export default function PostsAdmin() {
       const updatedPost = {
         ...currentPost,
         status: newStatus,
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        publishedAt: newStatus === 'published' && currentPost.status !== 'published'
+          ? new Date()
+          : currentPost.publishedAt
       }
       
       // Save to localStorage
@@ -116,8 +117,6 @@ export default function PostsAdmin() {
       setPosts(posts.map(post => 
         post.id === id ? updatedPost : post
       ))
-      
-      console.log(`Post status changed to ${newStatus}:`, updatedPost)
     } catch (error) {
       console.error('Error updating post:', error)
       alert('Error updating post')

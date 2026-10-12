@@ -1,4 +1,6 @@
 import { Post, Author, Category, User, Comment, BlogSettings } from '@/types/blog'
+import { generateId } from '@/lib/utils'
+import { samplePosts, sampleAuthor, sampleCategories, sampleUsers, getDefaultBlogSettings } from './sample-data'
 
 const STORAGE_KEYS = {
   POSTS: 'blog_posts',
@@ -7,12 +9,15 @@ const STORAGE_KEYS = {
   USERS: 'blog_users',
   COMMENTS: 'blog_comments',
   SETTINGS: 'blog_settings',
+  SUBSCRIBERS: 'blog_subscribers',
 } as const
 
 // Generic storage utilities
 export function getFromStorage<T>(key: string): T[] {
   if (typeof window === 'undefined') return []
-  
+
+  ensureSeeded(key)
+
   try {
     const data = localStorage.getItem(key)
     return data ? JSON.parse(data) : []
@@ -29,6 +34,34 @@ export function saveToStorage<T>(key: string, data: T[]): void {
     localStorage.setItem(key, JSON.stringify(data))
   } catch (error) {
     console.error(`Error saving to localStorage key "${key}":`, error)
+  }
+}
+
+// Lazily seed a storage key on first access so no getter can read before data exists
+function ensureSeeded(key: string): void {
+  if (typeof window === 'undefined') return
+  if (localStorage.getItem(key) !== null) return
+
+  switch (key) {
+    case STORAGE_KEYS.POSTS:
+      saveToStorage(key, samplePosts)
+      break
+    case STORAGE_KEYS.AUTHORS:
+      saveToStorage(key, [sampleAuthor])
+      break
+    case STORAGE_KEYS.CATEGORIES:
+      saveToStorage(key, sampleCategories)
+      break
+    case STORAGE_KEYS.USERS:
+      saveToStorage(key, sampleUsers)
+      break
+    case STORAGE_KEYS.SETTINGS:
+      saveToStorage(key, [getDefaultSettings()])
+      break
+    case STORAGE_KEYS.COMMENTS:
+    case STORAGE_KEYS.SUBSCRIBERS:
+      saveToStorage(key, [])
+      break
   }
 }
 
@@ -112,9 +145,6 @@ export function updatePost(id: string, postData: Partial<Post>): Post | null {
   return updatedPost
 }
 
-// Generate unique ID
-import { generateId } from '@/lib/utils'
-
 export function getPostBySlug(slug: string): Post | undefined {
   const posts = getPosts()
   return posts.find(post => post.slug === slug && post.status === 'published')
@@ -124,6 +154,20 @@ export function getPublishedPosts(): Post[] {
   return getPosts()
     .filter(post => post.status === 'published')
     .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+}
+
+// Ensure a post slug is unique by appending a numeric suffix if needed
+export function ensureSlugUnique(slug: string, excludeId?: string): string {
+  const posts = getPosts()
+  let uniqueSlug = slug
+  let suffix = 2
+
+  while (posts.some(post => post.slug === uniqueSlug && post.id !== excludeId)) {
+    uniqueSlug = `${slug}-${suffix}`
+    suffix++
+  }
+
+  return uniqueSlug
 }
 
 // Author storage utilities
@@ -170,6 +214,19 @@ export function saveCategory(category: Category): void {
 export function getCategoryById(id: string): Category | undefined {
   const categories = getCategories()
   return categories.find(category => category.id === id)
+}
+
+export function deleteCategory(id: string): boolean {
+  const categories = getCategories()
+  const initialLength = categories.length
+  const filteredCategories = categories.filter(category => category.id !== id)
+
+  if (filteredCategories.length === initialLength) {
+    return false // Category not found
+  }
+
+  saveToStorage(STORAGE_KEYS.CATEGORIES, filteredCategories)
+  return true
 }
 
 // Search and filter utilities
@@ -298,6 +355,50 @@ export function getCommentsByStatus(status: Comment['status']): Comment[] {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 }
 
+export function addComment(input: { author: string; email: string; content: string; postId: string; postTitle: string; postSlug: string }): Comment {
+  const comment: Comment = {
+    id: generateId(),
+    author: input.author,
+    email: input.email,
+    content: input.content,
+    postId: input.postId,
+    postTitle: input.postTitle,
+    postSlug: input.postSlug,
+    status: (getSettings()?.content.moderateComments ?? true) ? 'pending' : 'approved',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  saveComment(comment)
+  return comment
+}
+
+export function addReply(parentId: string, input: { author: string; email: string; content: string }): Comment | null {
+  const comments = getComments()
+  const parent = comments.find(comment => comment.id === parentId)
+
+  if (!parent) {
+    return null
+  }
+
+  const reply: Comment = {
+    id: generateId(),
+    author: input.author,
+    email: input.email,
+    content: input.content,
+    postId: parent.postId,
+    postTitle: parent.postTitle,
+    postSlug: parent.postSlug,
+    status: 'approved',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  parent.replies = [...(parent.replies ?? []), reply]
+  saveComment(parent)
+  return reply
+}
+
 // Settings storage utilities
 export function getSettings(): BlogSettings | null {
   const settings = getFromStorage<BlogSettings>(STORAGE_KEYS.SETTINGS)
@@ -309,55 +410,14 @@ export function saveSettings(settings: BlogSettings): void {
 }
 
 export function getDefaultSettings(): BlogSettings {
-  return {
-    general: {
-      siteName: 'Modern Blog',
-      siteDescription: 'A modern, beautiful blog built with Next.js and TypeScript',
-      siteUrl: 'https://modernblog.com',
-      timezone: 'America/New_York',
-      language: 'en',
-    },
-    appearance: {
-      theme: 'system',
-      primaryColor: '#3B82F6',
-      fontFamily: 'Inter',
-      logoUrl: '',
-      faviconUrl: '',
-    },
-    content: {
-      postsPerPage: 10,
-      enableComments: true,
-      moderateComments: true,
-      allowGuestComments: false,
-      showAuthorBio: true,
-      showReadingTime: true,
-      enableSocialSharing: true,
-    },
-    seo: {
-      metaTitle: 'Modern Blog - Latest in Web Development',
-      metaDescription: 'Stay updated with the latest trends in web development, JavaScript, React, and more.',
-      ogImage: '',
-      twitterHandle: '@modernblog',
-      enableSitemap: true,
-      enableRobotsTxt: true,
-    },
-    analytics: {
-      googleAnalyticsId: '',
-      googleSearchConsole: '',
-      enableCookieConsent: true,
-      trackingScript: '',
-    },
-    security: {
-      enableTwoFactor: false,
-      sessionTimeout: 24,
-      enableCaptcha: true,
-      maxLoginAttempts: 5,
-    },
-    notifications: {
-      emailNotifications: true,
-      newCommentNotifications: true,
-      weeklyReports: true,
-      systemUpdates: true,
-    },
+  return getDefaultBlogSettings()
+}
+
+// Subscriber storage utilities
+export function addSubscriber(email: string): void {
+  const subscribers = getFromStorage<string>(STORAGE_KEYS.SUBSCRIBERS)
+  if (!subscribers.includes(email)) {
+    subscribers.push(email)
+    saveToStorage(STORAGE_KEYS.SUBSCRIBERS, subscribers)
   }
 }

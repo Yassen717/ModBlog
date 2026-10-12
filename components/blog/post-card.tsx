@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Post } from '@/types/blog'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { formatDate } from '@/lib/utils'
@@ -15,11 +14,11 @@ export function PostCard({ post }: PostCardProps) {
         {/* Featured Image */}
         {post.featuredImage && (
           <div className="relative h-48 overflow-hidden">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={post.featuredImage}
               alt={post.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
@@ -55,12 +54,13 @@ export function PostCard({ post }: PostCardProps) {
           <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
             <div className="flex items-center space-x-2">
               {post.author.avatar && (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={post.author.avatar}
                   alt={post.author.name}
                   width={24}
                   height={24}
-                  className="rounded-full"
+                  className="rounded-full w-6 h-6"
                 />
               )}
               <span>{post.author.name}</span>

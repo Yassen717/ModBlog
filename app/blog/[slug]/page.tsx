@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { notFound } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { notFound, useSearchParams } from 'next/navigation'
 import { Post } from '@/types/blog'
-import { getPostBySlug, getPublishedPosts } from '@/lib/storage'
+import { getPostById, getPostBySlug, getPublishedPosts } from '@/lib/storage'
 import { PostDetail } from '@/components/blog/post-detail'
 import { PostNavigation } from '@/components/blog/post-navigation'
 import { RelatedPosts } from '@/components/blog/related-posts'
@@ -15,7 +15,18 @@ interface BlogPostPageProps {
   }>
 }
 
-export default function BlogPostPage({ params }: BlogPostPageProps) {
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+    </div>
+  )
+}
+
+function BlogPostContent({ params }: BlogPostPageProps) {
+  const searchParams = useSearchParams()
+  const isPreview = searchParams.get('preview') === '1'
+
   const [post, setPost] = useState<Post | null>(null)
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([])
   const [navigation, setNavigation] = useState<{
@@ -23,18 +34,19 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
     next: Post | null
   }>({ previous: null, next: null })
   const [loading, setLoading] = useState(true)
-  const [resolvedSlug, setResolvedSlug] = useState<string | null>(null)
+  const [missing, setMissing] = useState(false)
 
   useEffect(() => {
     const loadPost = async () => {
       try {
         const resolvedParams = await params
-        setResolvedSlug(resolvedParams.slug)
-        
-        const foundPost = getPostBySlug(resolvedParams.slug)
-        
+
+        const foundPost = isPreview
+          ? getPostById(resolvedParams.slug) || getPostBySlug(resolvedParams.slug)
+          : getPostBySlug(resolvedParams.slug)
+
         if (!foundPost) {
-          notFound()
+          setMissing(true)
           return
         }
 
@@ -43,7 +55,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         // Get all posts for navigation and related posts
         const allPosts = getPublishedPosts()
         const currentIndex = allPosts.findIndex(p => p.id === foundPost.id)
-        
+
         // Set navigation
         setNavigation({
           previous: currentIndex > 0 ? allPosts[currentIndex - 1] : null,
@@ -54,28 +66,24 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
         const related = allPosts
           .filter(p => p.id !== foundPost.id && p.category.id === foundPost.category.id)
           .slice(0, 3)
-        
+
         setRelatedPosts(related)
       } catch (error) {
         console.error('Error loading post:', error)
-        notFound()
+        setMissing(true)
       } finally {
         setLoading(false)
       }
     }
 
     loadPost()
-  }, [params])
+  }, [params, isPreview])
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
-  if (!post) {
+  if (missing || !post) {
     notFound()
   }
 
@@ -90,5 +98,13 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       <PostNavigation previous={navigation.previous} next={navigation.next} />
       {relatedPosts.length > 0 && <RelatedPosts posts={relatedPosts} />}
     </div>
+  )
+}
+
+export default function BlogPostPage({ params }: BlogPostPageProps) {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <BlogPostContent params={params} />
+    </Suspense>
   )
 }

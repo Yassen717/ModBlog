@@ -39,7 +39,7 @@ export interface User {
   id: string
   name: string
   email: string
-  role: 'Administrator' | 'Editor' | 'Author' | 'Subscriber'
+  role: 'admin' | 'editor' | 'author' | 'subscriber'
   avatar?: string
   status: 'active' | 'inactive'
   lastLogin?: string

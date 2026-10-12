@@ -5,10 +5,7 @@ import { initializeSampleData } from '@/lib/sample-data'
 
 export function useSampleData() {
   useEffect(() => {
-    // Force initialization on mount to ensure migration happens
+    // Idempotent and non-destructive: seeds missing keys and migrates stale image URLs
     initializeSampleData()
-    
-    // Log to console for debugging
-    console.log('Sample data initialized/migrated')
   }, [])
 }

@@ -1,18 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,12 +32,13 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Redirect to admin dashboard
-        router.push('/admin')
+        // Redirect to the originally requested page or the admin dashboard
+        const next = searchParams.get('next')
+        router.push(next?.startsWith('/') ? next : '/admin')
       } else {
         setError(data.error || 'Login failed')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
@@ -132,8 +134,8 @@ export default function LoginPage() {
 
         {/* Back to Site */}
         <div className="text-center">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
           >
             ← Back to Blog
@@ -141,5 +143,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

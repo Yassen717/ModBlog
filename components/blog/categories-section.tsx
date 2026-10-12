@@ -21,7 +21,7 @@ export function CategoriesSection({ categories }: CategoriesSectionProps) {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {categories.map((category) => (
-            <Link key={category.id} href={`/categories/${category.slug}`}>
+            <Link key={category.id} href={`/blog?category=${category.slug}`}>
               <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer h-full">
                 <CardContent className="p-6 text-center">
                   <div 

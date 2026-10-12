@@ -40,14 +40,12 @@ export default function SettingsAdmin() {
       
       if (existingSettings) {
         setSettings(existingSettings)
-        console.log('Loaded settings from localStorage')
       } else {
         // Use default settings if none exist
         const defaultSettings = getDefaultSettings()
         setSettings(defaultSettings)
         // Save default settings to localStorage
         saveSettings(defaultSettings)
-        console.log('Using default settings')
       }
     } catch (error) {
       console.error('Error loading settings:', error)
@@ -61,9 +59,6 @@ export default function SettingsAdmin() {
     // Removed appearance tab as requested
     { id: 'content', name: 'Content', icon: '📝' },
     { id: 'seo', name: 'SEO', icon: '🔍' },
-    { id: 'analytics', name: 'Analytics', icon: '📊' },
-    { id: 'security', name: 'Security', icon: '🔒' },
-    { id: 'notifications', name: 'Notifications', icon: '🔔' },
   ]
 
   const handleSave = async () => {
@@ -71,8 +66,6 @@ export default function SettingsAdmin() {
     try {
       // Save to localStorage
       saveSettings(settings)
-      console.log('Settings saved successfully:', settings)
-      
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000))
       

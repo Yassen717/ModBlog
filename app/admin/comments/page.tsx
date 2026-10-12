@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Comment } from '@/types/blog'
+import { getComments, saveComment, deleteComment, addReply } from '@/lib/storage'
 
 const statusColors = {
   approved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -21,11 +22,23 @@ export default function CommentsAdmin() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState('')
 
+  const loadComments = useCallback(() => {
+    try {
+      setLoading(true)
+      const allComments = getComments()
+      setComments(allComments)
+    } catch (error) {
+      console.error('Error loading comments:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Load comments from localStorage on mount
   useEffect(() => {
     loadComments()
-  }, [])
-  
+  }, [loadComments])
+
   // Refresh comments when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -33,84 +46,13 @@ export default function CommentsAdmin() {
         loadComments()
       }
     }
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
-
-  const getCommentsFromLocalStorage = (): Comment[] => {
-    if (typeof window === 'undefined') return []
-    
-    try {
-      const data = localStorage.getItem('blog_comments')
-      const comments = data ? JSON.parse(data) : []
-      
-      // Convert date strings to Date objects
-      return comments.map((comment: any) => ({
-        ...comment,
-        createdAt: new Date(comment.createdAt),
-        updatedAt: new Date(comment.updatedAt),
-      }))
-    } catch (error) {
-      console.error('Error reading comments from localStorage:', error)
-      return []
-    }
-  }
-
-  const saveCommentToLocalStorage = (comment: Comment) => {
-    if (typeof window === 'undefined') return
-    
-    try {
-      const comments = getCommentsFromLocalStorage()
-      const existingIndex = comments.findIndex(c => c.id === comment.id)
-      
-      if (existingIndex >= 0) {
-        comments[existingIndex] = { ...comment, updatedAt: new Date() }
-      } else {
-        comments.push({ ...comment, createdAt: new Date(), updatedAt: new Date() })
-      }
-      
-      localStorage.setItem('blog_comments', JSON.stringify(comments))
-    } catch (error) {
-      console.error('Error saving comment to localStorage:', error)
-    }
-  }
-
-  const deleteCommentFromLocalStorage = (id: string): boolean => {
-    if (typeof window === 'undefined') return false
-    
-    try {
-      const comments = getCommentsFromLocalStorage()
-      const initialLength = comments.length
-      const filteredComments = comments.filter(comment => comment.id !== id)
-      
-      if (filteredComments.length === initialLength) {
-        return false // Comment not found
-      }
-      
-      localStorage.setItem('blog_comments', JSON.stringify(filteredComments))
-      return true
-    } catch (error) {
-      console.error('Error deleting comment from localStorage:', error)
-      return false
-    }
-  }
-
-  const loadComments = () => {
-    try {
-      setLoading(true)
-      const allComments = getCommentsFromLocalStorage()
-      setComments(allComments)
-      console.log('Loaded comments from localStorage:', allComments.length)
-    } catch (error) {
-      console.error('Error loading comments:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [loadComments])
 
   const filteredComments = comments.filter(comment => {
     const matchesSearch = comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,16 +72,14 @@ export default function CommentsAdmin() {
         status: newStatus,
         updatedAt: new Date(),
       }
-      
+
       // Save to localStorage
-      saveCommentToLocalStorage(updatedComment)
+      saveComment(updatedComment)
       
       // Update local state
       setComments(comments.map(comment => 
         comment.id === id ? updatedComment : comment
       ))
-      
-      console.log('Comment status updated:', updatedComment)
     } catch (error) {
       console.error('Error updating comment status:', error)
       alert('Error updating comment status')
@@ -150,12 +90,11 @@ export default function CommentsAdmin() {
     if (confirm('Are you sure you want to delete this comment?')) {
       try {
         // Delete from localStorage
-        const success = deleteCommentFromLocalStorage(id)
+        const success = deleteComment(id)
         
         if (success) {
           // Update local state
           setComments(comments.filter(comment => comment.id !== id))
-          console.log('Comment deleted successfully:', id)
         } else {
           alert('Failed to delete comment - comment not found')
         }
@@ -176,12 +115,11 @@ export default function CommentsAdmin() {
       if (confirm(`Are you sure you want to delete ${selectedComments.length} comments?`)) {
         try {
           // Delete from localStorage
-          selectedComments.forEach(id => deleteCommentFromLocalStorage(id))
+          selectedComments.forEach(id => deleteComment(id))
           
           // Update local state
           setComments(comments.filter(comment => !selectedComments.includes(comment.id)))
           setSelectedComments([])
-          console.log('Bulk delete completed')
         } catch (error) {
           console.error('Error in bulk delete:', error)
           alert('Error deleting comments')
@@ -197,7 +135,7 @@ export default function CommentsAdmin() {
               status: action as Comment['status'],
               updatedAt: new Date(),
             }
-            saveCommentToLocalStorage(updated)
+            saveComment(updated)
             return updated
           }
           return comment
@@ -205,7 +143,6 @@ export default function CommentsAdmin() {
         
         setComments(updatedComments)
         setSelectedComments([])
-        console.log('Bulk status update completed')
       } catch (error) {
         console.error('Error in bulk status update:', error)
         alert('Error updating comment status')
@@ -246,44 +183,24 @@ export default function CommentsAdmin() {
     }
 
     try {
-      const parentComment = comments.find(comment => comment.id === parentCommentId)
-      if (!parentComment) return
+      // addReply nests the reply into the parent's replies array
+      const result = addReply(parentCommentId, {
+        author: 'Admin',
+        email: 'admin@modernblog.com',
+        content: replyContent.trim(),
+      })
 
-      // Create reply comment
-      const reply: Comment = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        author: 'Admin', // In a real app, this would be the logged-in user
-        email: 'admin@blog.com', // In a real app, this would be the user's email
-        content: replyContent,
-        postId: parentComment.postId,
-        postTitle: parentComment.postTitle,
-        postSlug: parentComment.postSlug,
-        status: 'approved', // Replies from admin are automatically approved
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      if (!result) {
+        alert('Failed to submit reply - parent comment not found')
+        return
       }
 
-      // Add reply to parent comment
-      const updatedParentComment: Comment = {
-        ...parentComment,
-        replies: parentComment.replies ? [...parentComment.replies, reply] : [reply],
-        updatedAt: new Date(),
-      }
-
-      // Save both comments
-      saveCommentToLocalStorage(reply)
-      saveCommentToLocalStorage(updatedParentComment)
-
-      // Update local state
-      setComments(comments.map(comment => 
-        comment.id === parentCommentId ? updatedParentComment : comment
-      ))
+      // Refresh local state from storage
+      setComments(getComments())
 
       // Reset reply state
       setReplyingTo(null)
       setReplyContent('')
-      
-      console.log('Reply submitted:', reply)
     } catch (error) {
       console.error('Error submitting reply:', error)
       alert('Error submitting reply')
@@ -305,11 +222,6 @@ export default function CommentsAdmin() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Comments</h1>
           <p className="text-gray-600 dark:text-gray-400">Moderate and manage blog comments</p>
-        </div>
-        <div className="mt-4 sm:mt-0">
-          <Button variant="secondary">
-            💬 Comment Settings
-          </Button>
         </div>
       </div>
 
@@ -510,9 +422,6 @@ export default function CommentsAdmin() {
                     <div className="flex justify-end space-x-2">
                       <Button variant="ghost" size="sm" onClick={() => startReply(comment.id)}>
                         💬
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        ✏️
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(comment.id)}>
                         🗑️

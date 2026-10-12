@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Post } from '@/types/blog'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
@@ -60,12 +59,13 @@ export function HeroSection({ featuredPost }: HeroSectionProps) {
             
             <div className="flex items-center space-x-4">
               {featuredPost.author.avatar && (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={featuredPost.author.avatar}
                   alt={featuredPost.author.name}
                   width={48}
                   height={48}
-                  className="rounded-full"
+                  className="rounded-full w-12 h-12"
                 />
               )}
               <div>
@@ -92,12 +92,11 @@ export function HeroSection({ featuredPost }: HeroSectionProps) {
           {featuredPost.featuredImage && (
             <div className="relative">
               <div className="relative h-96 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={featuredPost.featuredImage}
                   alt={featuredPost.title}
-                  fill
-                  className="object-cover"
-                  priority
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>

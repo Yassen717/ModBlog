@@ -1,4 +1,4 @@
-import { Post, Author, Category } from '@/types/blog'
+import { Post, Author, Category, User, BlogSettings } from '@/types/blog'
 import { generateSlug, calculateReadingTime } from './utils'
 
 // Sample author
@@ -14,6 +14,30 @@ export const sampleAuthor: Author = {
     website: 'https://johndoe.dev',
   },
 }
+
+// Seed users matching the auth accounts (author id '1' matches sampleAuthor for post attribution)
+export const sampleUsers: User[] = [
+  {
+    id: '1',
+    name: 'Admin User',
+    email: 'admin@modernblog.com',
+    role: 'admin',
+    status: 'active',
+    avatar: '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '2',
+    name: 'Editor User',
+    email: 'editor@modernblog.com',
+    role: 'editor',
+    status: 'active',
+    avatar: '/images/markus-spiske-MI9-PY5cyNs-unsplash.webp',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+]
 
 // Sample categories
 export const sampleCategories: Category[] = [
@@ -975,19 +999,19 @@ ES2024 brings powerful new features that make JavaScript more expressive and rob
   },
 ]
 
+// Map of post images (we have 7 images for different posts)
+const postImages = [
+  '/images/markus-spiske-hvSr_CVecVI-unsplash.webp',
+  '/images/ferenc-almasi-eYpcLDXHVb0-unsplash.webp',
+  '/images/fotis-fotopoulos-DuHKoV44prg-unsplash.webp',
+  '/images/christopher-gower-m_HRfLhgABo-unsplash.webp',
+  '/images/farzad-p-xSl33Wxyc-unsplash.webp',
+]
+
 // Generate sample posts with proper structure
 export const samplePosts: Post[] = samplePostsData.map((postData, index) => {
   const category = sampleCategories.find(cat => cat.id === postData.categoryId)!
   const publishedAt = new Date(Date.now() - (index * 7 * 24 * 60 * 60 * 1000)) // Each post 1 week apart
-  
-  // Map of post images (we have 7 images for different posts)
-  const postImages = [
-    '/images/markus-spiske-hvSr_CVecVI-unsplash.webp',
-    '/images/ferenc-almasi-eYpcLDXHVb0-unsplash.webp',
-    '/images/fotis-fotopoulos-DuHKoV44prg-unsplash.webp',
-    '/images/christopher-gower-m_HRfLhgABo-unsplash.webp',
-    '/images/farzad-p-xSl33Wxyc-unsplash.webp',
-  ];
   
   return {
     id: (index + 1).toString(),
@@ -1006,50 +1030,120 @@ export const samplePosts: Post[] = samplePostsData.map((postData, index) => {
   }
 })
 
-// Initialize sample data
+// Default blog settings
+export function getDefaultBlogSettings(): BlogSettings {
+  return {
+    general: {
+      siteName: 'Modern Blog',
+      siteDescription: 'A modern, beautiful blog built with Next.js and TypeScript',
+      siteUrl: 'https://modernblog.com',
+      timezone: 'America/New_York',
+      language: 'en',
+    },
+    appearance: {
+      theme: 'system',
+      primaryColor: '#3B82F6',
+      fontFamily: 'Inter',
+      logoUrl: '',
+      faviconUrl: '',
+    },
+    content: {
+      postsPerPage: 10,
+      enableComments: true,
+      moderateComments: true,
+      allowGuestComments: false,
+      showAuthorBio: true,
+      showReadingTime: true,
+      enableSocialSharing: true,
+    },
+    seo: {
+      metaTitle: 'Modern Blog - Latest in Web Development',
+      metaDescription: 'Stay updated with the latest trends in web development, JavaScript, React, and more.',
+      ogImage: '',
+      twitterHandle: '@modernblog',
+      enableSitemap: true,
+      enableRobotsTxt: true,
+    },
+    analytics: {
+      googleAnalyticsId: '',
+      googleSearchConsole: '',
+      enableCookieConsent: true,
+      trackingScript: '',
+    },
+    security: {
+      enableTwoFactor: false,
+      sessionTimeout: 24,
+      enableCaptcha: true,
+      maxLoginAttempts: 5,
+    },
+    notifications: {
+      emailNotifications: true,
+      newCommentNotifications: true,
+      weeklyReports: true,
+      systemUpdates: true,
+    },
+  }
+}
+
+// Initialize sample data: seed missing keys, never overwrite user data.
+// Stored posts/authors keep every entry; only stale external image URLs are rewritten in place.
 export function initializeSampleData() {
   if (typeof window === 'undefined') return
-  
-  // Check if data already exists
+
   const existingPosts = localStorage.getItem('blog_posts')
-  const existingAuthors = localStorage.getItem('blog_authors')
-  const existingCategories = localStorage.getItem('blog_categories')
-  
-  // Check if we need to migrate from Unsplash URLs to local images
-  let needsMigration = false
-  if (existingPosts) {
-    try {
-      const posts = JSON.parse(existingPosts)
-      if (posts.length > 0 && posts[0].featuredImage?.includes('unsplash.com')) {
-        needsMigration = true
-      }
-    } catch (e) {
-      needsMigration = true
-    }
-  }
-  
-  if (existingAuthors) {
-    try {
-      const authors = JSON.parse(existingAuthors)
-      if (authors.length > 0 && authors[0].avatar?.includes('unsplash.com')) {
-        needsMigration = true
-      }
-    } catch (e) {
-      needsMigration = true
-    }
-  }
-  
-  // Force refresh if migration needed or no data exists
-  if (!existingPosts || needsMigration) {
-    console.log('Initializing/migrating to local images...')
+  if (!existingPosts) {
     localStorage.setItem('blog_posts', JSON.stringify(samplePosts))
+  } else {
+    try {
+      const posts: Post[] = JSON.parse(existingPosts)
+      posts.forEach((post, index) => {
+        if (post.featuredImage?.includes('unsplash.com')) {
+          post.featuredImage = postImages[index % postImages.length]
+        }
+        if (post.author?.avatar?.includes('unsplash.com')) {
+          post.author.avatar = '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'
+        }
+      })
+      localStorage.setItem('blog_posts', JSON.stringify(posts))
+    } catch {
+      localStorage.setItem('blog_posts', JSON.stringify(samplePosts))
+    }
   }
-  
-  if (!existingAuthors || needsMigration) {
+
+  const existingAuthors = localStorage.getItem('blog_authors')
+  if (!existingAuthors) {
     localStorage.setItem('blog_authors', JSON.stringify([sampleAuthor]))
+  } else {
+    try {
+      const authors: Author[] = JSON.parse(existingAuthors)
+      authors.forEach(author => {
+        if (author.avatar?.includes('unsplash.com')) {
+          author.avatar = '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'
+        }
+      })
+      localStorage.setItem('blog_authors', JSON.stringify(authors))
+    } catch {
+      localStorage.setItem('blog_authors', JSON.stringify([sampleAuthor]))
+    }
   }
-  
-  if (!existingCategories) {
+
+  if (!localStorage.getItem('blog_categories')) {
     localStorage.setItem('blog_categories', JSON.stringify(sampleCategories))
+  }
+
+  if (!localStorage.getItem('blog_users')) {
+    localStorage.setItem('blog_users', JSON.stringify(sampleUsers))
+  }
+
+  if (!localStorage.getItem('blog_settings')) {
+    localStorage.setItem('blog_settings', JSON.stringify([getDefaultBlogSettings()]))
+  }
+
+  if (!localStorage.getItem('blog_comments')) {
+    localStorage.setItem('blog_comments', JSON.stringify([]))
+  }
+
+  if (!localStorage.getItem('blog_subscribers')) {
+    localStorage.setItem('blog_subscribers', JSON.stringify([]))
   }
 }

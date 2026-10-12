@@ -38,17 +38,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the public blog.
 
-To access the admin dashboard, navigate to [http://localhost:3000/admin](http://localhost:3000/admin) and log in with:
+To access the admin dashboard, navigate to [http://localhost:3000/admin](http://localhost:3000/admin) and log in with the demo accounts:
 
 - **Admin**: admin@modernblog.com / admin123
 - **Editor**: editor@modernblog.com / editor123
+
+Demo credentials can be overridden via the `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `EDITOR_EMAIL`, and `EDITOR_PASSWORD` environment variables. Session cookies are HMAC-signed; set `AUTH_SECRET` to override the built-in development secret.
 
 ## Project Structure
 
 ```
 app/                 # Next.js App Router structure
 ├── admin/          # Admin dashboard pages
-├── api/            # API routes for authentication and CRUD operations
+├── api/auth/       # Authentication API routes (login/logout/me)
 ├── blog/           # Public blog pages
 ├── login/          # Authentication pages
 ├── layout.tsx      # Root layout with metadata
@@ -71,7 +73,7 @@ types/              # TypeScript type definitions
 
 ## Data Management
 
-This project uses localStorage for data persistence instead of a traditional database. All blog posts, categories, users, and comments are stored in the browser's localStorage, making it easy to run without any backend setup.
+This project uses localStorage for data persistence instead of a traditional database. All blog posts, categories, users, comments, subscribers, and settings are stored in the browser's localStorage, making it easy to run without any backend setup. Sample data is seeded lazily on first access, so a fresh visitor sees content immediately.
 
 Key storage utilities:
 - `getPosts()` / `savePost()` - Manage blog posts

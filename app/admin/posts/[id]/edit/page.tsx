@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { sampleCategories, sampleAuthor } from '@/lib/sample-data'
 import { Category, Post } from '@/types/blog'
-import { getCategories, getPostById, savePost, deletePost } from '@/lib/storage'
+import { getCategories, getPostById, savePost, deletePost, ensureSlugUnique } from '@/lib/storage'
+import { calculateReadingTime } from '@/lib/utils'
 
 interface EditPostPageProps {
   params: Promise<{ id: string }>
@@ -35,33 +36,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
-  // Load post and categories on mount
-  useEffect(() => {
-    const loadData = async () => {
-      const resolvedParams = await params
-      setPostId(resolvedParams.id)
-      loadPost(resolvedParams.id)
-      loadCategories()
-    }
-    loadData()
-  }, [])
-  
-  // Refresh categories when page becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadCategories()
-      }
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [])
-
-  const loadPost = async (id: string) => {
+  const loadPost = useCallback(async (id: string) => {
     try {
       setLoadingPost(true)
       
@@ -89,26 +64,49 @@ export default function EditPostPage({ params }: EditPostPageProps) {
     } finally {
       setLoadingPost(false)
     }
-  }
+  }, [router])
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       // Get categories directly from localStorage
       const allCategories = getCategories()
       
       if (allCategories.length > 0) {
-        console.log('Categories loaded from localStorage:', allCategories)
         setCategories(allCategories)
       } else {
-        console.log('No categories in localStorage, using sample categories')
         setCategories(sampleCategories)
       }
     } catch (error) {
       console.error('Error loading categories:', error)
-      console.log('Error occurred, using sample categories')
       setCategories(sampleCategories)
     }
-  }
+  }, [])
+
+  // Load post and categories on mount
+  useEffect(() => {
+    const loadData = async () => {
+      const resolvedParams = await params
+      setPostId(resolvedParams.id)
+      loadPost(resolvedParams.id)
+      loadCategories()
+    }
+    loadData()
+  }, [params, loadPost, loadCategories])
+
+  // Refresh categories when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCategories()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [loadCategories])
 
   const generateSlug = (title: string) => {
     return title
@@ -172,7 +170,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       const updatedPost: Post = {
         id: postId,
         title: formData.title,
-        slug: formData.slug,
+        slug: ensureSlugUnique(formData.slug, postId),
         excerpt: formData.excerpt,
         content: formData.content,
         featuredImage: formData.featuredImage || undefined,
@@ -183,15 +181,16 @@ export default function EditPostPage({ params }: EditPostPageProps) {
           .filter(tag => tag.length > 0),
         status: formData.status,
         author: post?.author || sampleAuthor, // Keep the original author
-        publishedAt: post?.publishedAt || new Date(),
+        // Set publish date only when a draft is published for the first time
+        publishedAt: formData.status === 'published' && post?.status !== 'published'
+          ? new Date()
+          : post?.publishedAt || new Date(),
         updatedAt: new Date(),
-        readingTime: Math.ceil(formData.content.length / 200) // Simple reading time calculation
+        readingTime: calculateReadingTime(formData.content)
       }
 
       // Save to localStorage directly
       savePost(updatedPost)
-      
-      console.log('Post updated successfully:', updatedPost)
       router.push('/admin/posts')
     } catch (error) {
       console.error('Error updating post:', error)
@@ -227,7 +226,6 @@ export default function EditPostPage({ params }: EditPostPageProps) {
       const success = deletePost(postId)
       
       if (success) {
-        console.log('Post deleted successfully:', postId)
         router.push('/admin/posts')
       } else {
         alert('Failed to delete post')
@@ -497,6 +495,7 @@ export default function EditPostPage({ params }: EditPostPageProps) {
             />
             {formData.featuredImage && (
               <div className="mt-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={formData.featuredImage}
                   alt="Featured"

@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Category } from '@/types/blog'
-import { getCategories, saveCategory } from '@/lib/storage'
-import { getAllPosts } from '@/lib/storage'
+import { getCategories, saveCategory, deleteCategory, getAllPosts, updatePost } from '@/lib/storage'
 
 // Extended category type with post count for admin display
 type CategoryWithCount = Category & { postCount: number }
@@ -54,7 +53,6 @@ export default function CategoriesAdmin() {
       }))
       
       setCategories(categoriesWithCounts)
-      console.log('Loaded categories from localStorage:', categoriesWithCounts.length)
     } catch (error) {
       console.error('Error loading categories:', error)
     }
@@ -75,10 +73,17 @@ export default function CategoriesAdmin() {
       
       // Save to localStorage
       saveCategory(updatedCategory)
-      
+
+      // Propagate the updated category into posts that embed it
+      getAllPosts().forEach(post => {
+        if (post.category.id === editingId) {
+          updatePost(post.id, { category: updatedCategory })
+        }
+      })
+
       // Update local state
-      setCategories(categories.map(cat => 
-        cat.id === editingId 
+      setCategories(categories.map(cat =>
+        cat.id === editingId
           ? { ...updatedCategory, postCount: cat.postCount }
           : cat
       ))
@@ -86,7 +91,7 @@ export default function CategoriesAdmin() {
     } else {
       // Create new category
       const newCategory: Category = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
         name: formData.name,
         slug: formData.slug,
         description: formData.description,
@@ -102,7 +107,6 @@ export default function CategoriesAdmin() {
     }
     
     setFormData({ name: '', slug: '', description: '', color: '#3B82F6' })
-    console.log('Category saved successfully')
   }
 
   const handleEdit = (category: CategoryWithCount) => {
@@ -117,19 +121,24 @@ export default function CategoriesAdmin() {
   }
 
   const handleDelete = (id: string) => {
+    const category = categories.find(cat => cat.id === id)
+    if (!category) return
+
+    if (category.postCount > 0) {
+      alert(`Cannot delete "${category.name}": ${category.postCount} posts use this category. Reassign them first.`)
+      return
+    }
+
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
       try {
-        // Remove from localStorage by filtering and saving
-        const allCategories = getCategories()
-        const filteredCategories = allCategories.filter(cat => cat.id !== id)
-        
-        // Save the filtered categories back
-        // Since we need to save all categories, we'll overwrite localStorage
-        localStorage.setItem('blog_categories', JSON.stringify(filteredCategories))
-        
-        // Update local state
-        setCategories(categories.filter(cat => cat.id !== id))
-        console.log('Category deleted successfully:', id)
+        const success = deleteCategory(id)
+
+        if (success) {
+          // Update local state
+          setCategories(categories.filter(cat => cat.id !== id))
+        } else {
+          alert('Failed to delete category - category not found')
+        }
       } catch (error) {
         console.error('Error deleting category:', error)
         alert('Error deleting category')
@@ -184,7 +193,7 @@ export default function CategoriesAdmin() {
         </Card>
         <Card className="p-6 text-center">
           <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-            {Math.round(categories.reduce((sum, cat) => sum + cat.postCount, 0) / categories.length)}
+            {Math.round(categories.reduce((sum, cat) => sum + cat.postCount, 0) / categories.length) || 0}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Avg Posts/Category</div>
         </Card>

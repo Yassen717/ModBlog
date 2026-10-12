@@ -1,48 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AUTH_COOKIE, USERS, verifyAuthToken } from '@/lib/auth'
 
 // GET /api/auth/me - Get current user info
 export async function GET(request: NextRequest) {
   try {
-    const authToken = request.cookies.get('auth-token')
-    
-    if (!authToken) {
+    const payload = await verifyAuthToken(request.cookies.get(AUTH_COOKIE)?.value ?? '')
+
+    if (!payload) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    // Parse the auth token (in production, verify JWT)
-    const tokenData = JSON.parse(authToken.value)
-    
-    // Check if token is expired
-    if (Date.now() > tokenData.exp) {
-      return NextResponse.json(
-        { error: 'Token expired' },
-        { status: 401 }
-      )
-    }
+    const user = USERS.find(u => u.id === payload.userId)
 
-    // Simple user store (in production, fetch from database)
-    const users = [
-      {
-        id: '1',
-        email: 'admin@modernblog.com',
-        name: 'Admin User',
-        role: 'admin',
-        avatar: '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'
-      },
-      {
-        id: '2',
-        email: 'editor@modernblog.com',
-        name: 'Editor User',
-        role: 'editor',
-        avatar: '/images/markus-spiske-MI9-PY5cyNs-unsplash.webp'
-      }
-    ]
-
-    const user = users.find(u => u.id === tokenData.userId)
-    
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -50,7 +22,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ user })
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar
+      }
+    })
   } catch (error) {
     console.error('Auth check error:', error)
     return NextResponse.json(

@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { sampleCategories, sampleAuthor } from '@/lib/sample-data'
 import { Category, Post } from '@/types/blog'
-import { getCategories, savePost } from '@/lib/storage'
+import { getCategories, savePost, ensureSlugUnique } from '@/lib/storage'
+import { calculateReadingTime } from '@/lib/utils'
 
 export default function CreatePostPage() {
   const router = useRouter()
@@ -52,16 +53,13 @@ export default function CreatePostPage() {
       const allCategories = getCategories()
       
       if (allCategories.length > 0) {
-        console.log('Categories loaded from localStorage:', allCategories)
         setCategories(allCategories)
       } else {
-        console.log('No categories in localStorage, using sample categories')
         // Fallback to sample categories if localStorage is empty
         setCategories(sampleCategories)
       }
     } catch (error) {
       console.error('Error loading categories:', error)
-      console.log('Error occurred, using sample categories')
       setCategories(sampleCategories)
     }
   }
@@ -77,7 +75,8 @@ export default function CreatePostPage() {
     setFormData(prev => ({
       ...prev,
       title,
-      slug: generateSlug(title)
+      // Only auto-generate slug if it matches the current title's slug
+      slug: prev.slug === generateSlug(prev.title) ? generateSlug(title) : prev.slug
     }))
   }
 
@@ -106,7 +105,11 @@ export default function CreatePostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    if (!validateForm()) {
+      return
+    }
+
     // Use the current form data for direct form submission
     await submitPost(formData)
   }
@@ -150,9 +153,9 @@ export default function CreatePostPage() {
 
       // Create new post object
       const newPost: Post = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
         title: formDataToSubmit.title,
-        slug: formDataToSubmit.slug,
+        slug: ensureSlugUnique(formDataToSubmit.slug),
         excerpt: formDataToSubmit.excerpt,
         content: formDataToSubmit.content,
         featuredImage: formDataToSubmit.featuredImage || undefined,
@@ -165,14 +168,11 @@ export default function CreatePostPage() {
         status: formDataToSubmit.status,
         publishedAt: new Date(),
         updatedAt: new Date(),
-        readingTime: Math.ceil(formDataToSubmit.content.length / 200) // Simple reading time calculation
+        readingTime: calculateReadingTime(formDataToSubmit.content)
       }
 
       // Save directly to localStorage
       savePost(newPost)
-      
-      console.log('Post created successfully:', newPost)
-      
       // Clear any previous errors and show success
       const statusText = formDataToSubmit.status === 'published' ? 'published' : 'saved as draft'
       setErrors({ success: `Post ${statusText} successfully! Redirecting...` })
@@ -394,6 +394,7 @@ export default function CreatePostPage() {
             </p>
             {formData.featuredImage && (
               <div className="mt-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={formData.featuredImage}
                   alt="Featured"

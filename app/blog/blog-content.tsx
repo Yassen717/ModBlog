@@ -4,48 +4,43 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Post } from '@/types/blog'
-import { getPublishedPosts } from '@/lib/storage'
+import { getPublishedPosts, getCategories, getSettings } from '@/lib/storage'
 import { PostGrid } from '@/components/blog/post-grid'
 import { Button } from '@/components/ui/button'
-import { sampleCategories } from '@/lib/sample-data'
 
 export default function BlogPageContent() {
   const searchParams = useSearchParams()
   const categoryFilter = searchParams.get('category')
   const tagFilter = searchParams.get('tag')
   
-  const [posts, setPosts] = useState<Post[]>([])
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([])
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  
-  const postsPerPage = 6
+
+  const postsPerPage = getSettings()?.content.postsPerPage ?? 6
 
   useEffect(() => {
     const loadPosts = () => {
       try {
         const allPosts = getPublishedPosts()
-        setPosts(allPosts)
-        
+
         // Apply filters
         let filtered = allPosts
-        
+
         if (categoryFilter) {
           filtered = filtered.filter(post => post.category.slug === categoryFilter)
         }
-        
+
         if (tagFilter) {
-          const tag = tagFilter.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-          filtered = filtered.filter(post => 
-            post.tags.some(postTag => 
-              postTag.toLowerCase().replace(/\s+/g, '-') === tagFilter ||
-              postTag.toLowerCase() === tag.toLowerCase()
+          filtered = filtered.filter(post =>
+            post.tags.some(postTag =>
+              postTag.toLowerCase().replace(/\s+/g, '-') === tagFilter
             )
           )
         }
-        
+
         setFilteredPosts(filtered)
         setDisplayedPosts(filtered.slice(0, postsPerPage))
         setCurrentPage(1)
@@ -57,7 +52,7 @@ export default function BlogPageContent() {
     }
 
     loadPosts()
-  }, [categoryFilter, tagFilter])
+  }, [categoryFilter, tagFilter, postsPerPage])
 
   const loadMorePosts = () => {
     setLoadingMore(true)
@@ -77,7 +72,7 @@ export default function BlogPageContent() {
   
   // Get current category for display
   const currentCategory = categoryFilter 
-    ? sampleCategories.find(cat => cat.slug === categoryFilter)
+    ? getCategories().find(cat => cat.slug === categoryFilter)
     : null
 
   if (loading) {

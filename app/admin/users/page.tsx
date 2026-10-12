@@ -4,25 +4,24 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { User } from '@/types/blog'
-import { getUsers, saveUser, deleteUser, getAllPosts } from '@/lib/storage'
+import { getUsers, saveUser, deleteUser, getAllPosts, getComments } from '@/lib/storage'
 
 // Extended user type with post/comment counts for admin display
 type UserWithCounts = User & { posts: number; comments: number }
 
 const roleColors = {
-  Administrator: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  Editor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  Author: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  Subscriber: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+  admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  editor: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  author: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  subscriber: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
 }
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState<UserWithCounts[]>([])
   const [isInviting, setIsInviting] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<User['role']>('Subscriber')
+  const [inviteRole, setInviteRole] = useState<User['role']>('subscriber')
   const [loading, setLoading] = useState(true)
 
   // Load users from localStorage on mount
@@ -51,15 +50,15 @@ export default function UsersAdmin() {
       const allUsers = getUsers()
       const allPosts = getAllPosts()
       
-      // Add post counts to users (comments would need to be implemented)
+      // Add post and comment counts to users
+      const allComments = getComments()
       const usersWithCounts: UserWithCounts[] = allUsers.map(user => ({
         ...user,
         posts: allPosts.filter(post => post.author.id === user.id).length,
-        comments: 0, // TODO: implement comments count when comments are integrated
+        comments: allComments.filter(comment => comment.email === user.email).length,
       }))
       
       setUsers(usersWithCounts)
-      console.log('Loaded users from localStorage:', usersWithCounts.length)
     } catch (error) {
       console.error('Error loading users:', error)
     } finally {
@@ -72,7 +71,7 @@ export default function UsersAdmin() {
     
     // Create new user
     const newUser: User = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 11),
       name: inviteEmail.split('@')[0], // Use email prefix as name initially
       email: inviteEmail,
       role: inviteRole,
@@ -96,7 +95,6 @@ export default function UsersAdmin() {
       
       setInviteEmail('')
       setIsInviting(false)
-      console.log('User invited successfully:', newUser)
     } catch (error) {
       console.error('Error inviting user:', error)
       alert('Error inviting user')
@@ -123,8 +121,6 @@ export default function UsersAdmin() {
           ? { ...user, status: newStatus }
           : user
       ))
-      
-      console.log('User status updated:', updatedUser)
     } catch (error) {
       console.error('Error updating user status:', error)
       alert('Error updating user status')
@@ -151,8 +147,6 @@ export default function UsersAdmin() {
           ? { ...user, role: newRole }
           : user
       ))
-      
-      console.log('User role updated:', updatedUser)
     } catch (error) {
       console.error('Error updating user role:', error)
       alert('Error updating user role')
@@ -168,7 +162,6 @@ export default function UsersAdmin() {
         if (success) {
           // Update local state
           setUsers(users.filter(user => user.id !== userId))
-          console.log('User deleted successfully:', userId)
         } else {
           alert('Failed to delete user - user not found')
         }
@@ -194,6 +187,7 @@ export default function UsersAdmin() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Users</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage user accounts and permissions</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Demo only — user records are stored locally and cannot log in.</p>
         </div>
         <Button onClick={() => setIsInviting(true)} disabled={isInviting}>
           👥 Invite User
@@ -216,7 +210,7 @@ export default function UsersAdmin() {
         </Card>
         <Card className="p-4 text-center">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {users.filter(u => u.role === 'Administrator' || u.role === 'Editor').length}
+            {users.filter(u => u.role === 'admin' || u.role === 'editor').length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Staff Members</div>
         </Card>
@@ -258,10 +252,10 @@ export default function UsersAdmin() {
                   onChange={(e) => setInviteRole(e.target.value as User['role'])}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
-                  <option value="Subscriber">Subscriber</option>
-                  <option value="Author">Author</option>
-                  <option value="Editor">Editor</option>
-                  <option value="Administrator">Administrator</option>
+                  <option value="subscriber">Subscriber</option>
+                  <option value="author">Author</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Administrator</option>
                 </select>
               </div>
             </div>
@@ -331,10 +325,10 @@ export default function UsersAdmin() {
                       onChange={(e) => handleRoleChange(user.id, e.target.value as User['role'])}
                       className={`text-xs px-2 py-1 rounded-full border-0 ${roleColors[user.role as keyof typeof roleColors]}`}
                     >
-                      <option value="Subscriber">Subscriber</option>
-                      <option value="Author">Author</option>
-                      <option value="Editor">Editor</option>
-                      <option value="Administrator">Administrator</option>
+                      <option value="subscriber">Subscriber</option>
+                      <option value="author">Author</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Administrator</option>
                     </select>
                   </td>
                   <td className="px-6 py-4">
@@ -355,16 +349,10 @@ export default function UsersAdmin() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {user.lastLogin}
+                    {user.lastLogin || 'Never'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">
-                      <Button variant="ghost" size="sm">
-                        📧
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        📝
-                      </Button>
                       <div className="relative group">
                         <Button variant="ghost" size="sm">
                           ⋮
@@ -376,12 +364,6 @@ export default function UsersAdmin() {
                               className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
                             >
                               {user.status === 'active' ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button
-                              onClick={() => {/* Reset password logic */}}
-                              className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                            >
-                              Reset Password
                             </button>
                             <button
                               onClick={() => handleDelete(user.id)}

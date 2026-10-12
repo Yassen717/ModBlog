@@ -1,27 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { initializeSampleData } from '@/lib/sample-data'
+import { getAllPosts, getCategories, getAuthors, getUsers, getComments, getSettings, getFromStorage } from '@/lib/storage'
+
+const STORAGE_KEYS = ['blog_posts', 'blog_authors', 'blog_categories', 'blog_users', 'blog_comments', 'blog_settings', 'blog_subscribers']
 
 export default function DataResetPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [counts, setCounts] = useState({
+    posts: 0,
+    categories: 0,
+    authors: 0,
+    users: 0,
+    comments: 0,
+    settings: 0,
+    subscribers: 0,
+  })
+
+  const refreshCounts = () => {
+    setCounts({
+      posts: getAllPosts().length,
+      categories: getCategories().length,
+      authors: getAuthors().length,
+      users: getUsers().length,
+      comments: getComments().length,
+      settings: getSettings() ? 1 : 0,
+      subscribers: getFromStorage<string>('blog_subscribers').length,
+    })
+  }
+
+  useEffect(() => {
+    refreshCounts()
+  }, [])
 
   const handleClearData = () => {
     setLoading(true)
     setMessage('')
-    
+
     try {
       // Clear all blog data from localStorage
-      localStorage.removeItem('blog_posts')
-      localStorage.removeItem('blog_authors')
-      localStorage.removeItem('blog_categories')
-      localStorage.removeItem('blog_users')
-      localStorage.removeItem('blog_comments')
-      localStorage.removeItem('blog_settings')
-      
+      STORAGE_KEYS.forEach(key => localStorage.removeItem(key))
+      refreshCounts()
+
       setMessage('✅ All data cleared successfully! Click "Reinitialize Data" to load fresh data.')
     } catch (error) {
       setMessage('❌ Error clearing data: ' + (error as Error).message)
@@ -33,13 +57,14 @@ export default function DataResetPage() {
   const handleReinitialize = () => {
     setLoading(true)
     setMessage('')
-    
+
     try {
       // Reinitialize with fresh sample data
       initializeSampleData()
-      
+      refreshCounts()
+
       setMessage('✅ Data reinitialized with local images! Please refresh the page to see changes.')
-      
+
       // Auto-reload after 2 seconds
       setTimeout(() => {
         window.location.href = '/admin'
@@ -54,21 +79,17 @@ export default function DataResetPage() {
   const handleFullReset = () => {
     setLoading(true)
     setMessage('')
-    
+
     try {
       // Clear all data
-      localStorage.removeItem('blog_posts')
-      localStorage.removeItem('blog_authors')
-      localStorage.removeItem('blog_categories')
-      localStorage.removeItem('blog_users')
-      localStorage.removeItem('blog_comments')
-      localStorage.removeItem('blog_settings')
-      
+      STORAGE_KEYS.forEach(key => localStorage.removeItem(key))
+
       // Reinitialize
       initializeSampleData()
-      
+      refreshCounts()
+
       setMessage('✅ Full reset complete! Redirecting to admin...')
-      
+
       // Auto-reload after 1 second
       setTimeout(() => {
         window.location.href = '/admin'
@@ -79,6 +100,16 @@ export default function DataResetPage() {
       setLoading(false)
     }
   }
+
+  const storageItems = [
+    { name: 'Posts', value: counts.posts, color: 'text-blue-600 dark:text-blue-400' },
+    { name: 'Categories', value: counts.categories, color: 'text-green-600 dark:text-green-400' },
+    { name: 'Authors', value: counts.authors, color: 'text-purple-600 dark:text-purple-400' },
+    { name: 'Users', value: counts.users, color: 'text-orange-600 dark:text-orange-400' },
+    { name: 'Comments', value: counts.comments, color: 'text-pink-600 dark:text-pink-400' },
+    { name: 'Settings', value: counts.settings, color: 'text-teal-600 dark:text-teal-400' },
+    { name: 'Subscribers', value: counts.subscribers, color: 'text-indigo-600 dark:text-indigo-400' },
+  ]
 
   return (
     <div className="space-y-6">
@@ -97,7 +128,7 @@ export default function DataResetPage() {
               Warning: Data Reset
             </h3>
             <p className="text-sm text-yellow-800 dark:text-yellow-300">
-              These actions will clear all blog data from localStorage. This includes all posts, 
+              These actions will clear all blog data from localStorage. This includes all posts,
               categories, users, comments, and settings. This action cannot be undone.
             </p>
           </div>
@@ -117,8 +148,8 @@ export default function DataResetPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Load fresh sample data with local images. Keeps existing data if any.
             </p>
-            <Button 
-              onClick={handleReinitialize} 
+            <Button
+              onClick={handleReinitialize}
               disabled={loading}
               className="w-full"
             >
@@ -136,10 +167,10 @@ export default function DataResetPage() {
               Clear All Data
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Remove all blog data from localStorage. You'll need to reinitialize after.
+              Remove all blog data from localStorage. You&apos;ll need to reinitialize after.
             </p>
-            <Button 
-              onClick={handleClearData} 
+            <Button
+              onClick={handleClearData}
               disabled={loading}
               variant="secondary"
               className="w-full"
@@ -160,8 +191,8 @@ export default function DataResetPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Clear all data and reinitialize with fresh sample data in one step.
             </p>
-            <Button 
-              onClick={handleFullReset} 
+            <Button
+              onClick={handleFullReset}
               disabled={loading}
               className="w-full bg-red-600 hover:bg-red-700"
             >
@@ -186,19 +217,19 @@ export default function DataResetPage() {
         <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
           <li className="flex items-start space-x-2">
             <span>•</span>
-            <span><strong>After updating image paths:</strong> Use "Full Reset" to migrate from external URLs to local images</span>
+            <span><strong>After updating image paths:</strong> Use &quot;Full Reset&quot; to migrate from external URLs to local images</span>
           </li>
           <li className="flex items-start space-x-2">
             <span>•</span>
-            <span><strong>Testing with fresh data:</strong> Use "Full Reset" to get clean sample data</span>
+            <span><strong>Testing with fresh data:</strong> Use &quot;Full Reset&quot; to get clean sample data</span>
           </li>
           <li className="flex items-start space-x-2">
             <span>•</span>
-            <span><strong>Corrupted data:</strong> Use "Full Reset" if you're experiencing errors</span>
+            <span><strong>Corrupted data:</strong> Use &quot;Full Reset&quot; if you&apos;re experiencing errors</span>
           </li>
           <li className="flex items-start space-x-2">
             <span>•</span>
-            <span><strong>Starting over:</strong> Use "Clear All Data" then manually add your own content</span>
+            <span><strong>Starting over:</strong> Use &quot;Clear All Data&quot; then manually add your own content</span>
           </li>
         </ul>
       </Card>
@@ -208,31 +239,15 @@ export default function DataResetPage() {
         <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
           Current Storage Status
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {typeof window !== 'undefined' && localStorage.getItem('blog_posts') 
-                ? JSON.parse(localStorage.getItem('blog_posts') || '[]').length 
-                : 0}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {storageItems.map((item) => (
+            <div key={item.name} className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className={`text-2xl font-bold ${item.color}`}>
+                {item.value}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{item.name}</div>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Posts</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {typeof window !== 'undefined' && localStorage.getItem('blog_categories') 
-                ? JSON.parse(localStorage.getItem('blog_categories') || '[]').length 
-                : 0}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Categories</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {typeof window !== 'undefined' && localStorage.getItem('blog_authors') 
-                ? JSON.parse(localStorage.getItem('blog_authors') || '[]').length 
-                : 0}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Authors</div>
-          </div>
+          ))}
         </div>
       </Card>
     </div>

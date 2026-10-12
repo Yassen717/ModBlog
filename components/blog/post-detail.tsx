@@ -1,5 +1,8 @@
-import Image from 'next/image'
+'use client'
+
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Post } from '@/types/blog'
 import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -9,6 +12,8 @@ interface PostDetailProps {
 }
 
 export function PostDetail({ post }: PostDetailProps) {
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
+
   return (
     <article className="py-12">
       {/* Header */}
@@ -29,7 +34,7 @@ export function PostDetail({ post }: PostDetailProps) {
 
           {/* Category Badge */}
           <div className="flex items-center justify-between mb-6">
-            <Link href={`/categories/${post.category.slug}`}>
+            <Link href={`/blog?category=${post.category.slug}`}>
               <span 
                 className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white hover:opacity-80 transition-opacity"
                 style={{ backgroundColor: post.category.color }}
@@ -56,12 +61,13 @@ export function PostDetail({ post }: PostDetailProps) {
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-8">
             <div className="flex items-center space-x-4">
               {post.author.avatar && (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={post.author.avatar}
                   alt={post.author.name}
                   width={56}
                   height={56}
-                  className="rounded-full"
+                  className="rounded-full w-14 h-14"
                 />
               )}
               <div>
@@ -91,12 +97,11 @@ export function PostDetail({ post }: PostDetailProps) {
         <div className="container mx-auto px-4 mb-12">
           <div className="max-w-5xl mx-auto">
             <div className="relative h-64 md:h-96 lg:h-[500px] rounded-2xl overflow-hidden">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={post.featuredImage}
                 alt={post.title}
-                fill
-                className="object-cover"
-                priority
+                className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
           </div>
@@ -107,11 +112,10 @@ export function PostDetail({ post }: PostDetailProps) {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100">
-            <div 
-              className="content leading-relaxed"
-              style={{ whiteSpace: 'pre-wrap' }}
-            >
-              {post.content}
+            <div className="content leading-relaxed">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {post.content}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -125,7 +129,7 @@ export function PostDetail({ post }: PostDetailProps) {
                 {post.tags.map((tag) => (
                   <Link
                     key={tag}
-                    href={`/tags/${tag.toLowerCase().replace(/\s+/g, '-')}`}
+                    href={`/blog?tag=${tag.toLowerCase().replace(/\s+/g, '-')}`}
                     className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
                   >
                     #{tag}
@@ -149,7 +153,7 @@ export function PostDetail({ post }: PostDetailProps) {
               <div className="flex space-x-3 mt-4 sm:mt-0">
                 <Button variant="secondary" size="sm" asChild>
                   <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(window.location.href)}`}
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -158,7 +162,7 @@ export function PostDetail({ post }: PostDetailProps) {
                 </Button>
                 <Button variant="secondary" size="sm" asChild>
                   <a
-                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`}
+                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

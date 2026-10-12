@@ -1,6 +1,17 @@
+'use client'
+
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { getSettings } from '@/lib/storage'
 
 export function Footer() {
+  const [siteName, setSiteName] = useState('Modern Blog')
+
+  useEffect(() => {
+    const s = getSettings()
+    if (s?.general.siteName) setSiteName(s.general.siteName)
+  }, [])
+
   return (
     <footer className="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-12">
@@ -11,7 +22,7 @@ export function Footer() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">MB</span>
               </div>
-              <span className="font-bold text-xl">Modern Blog</span>
+              <span className="font-bold text-xl">{siteName}</span>
             </Link>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               A modern blog showcasing the latest in web development, built with Next.js and TypeScript.
@@ -50,22 +61,22 @@ export function Footer() {
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">Categories</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/categories/web-development" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
+                <Link href="/blog?category=web-development" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
                   Web Development
                 </Link>
               </li>
               <li>
-                <Link href="/categories/javascript" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
+                <Link href="/blog?category=javascript" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
                   JavaScript
                 </Link>
               </li>
               <li>
-                <Link href="/categories/react" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
+                <Link href="/blog?category=react" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
                   React
                 </Link>
               </li>
               <li>
-                <Link href="/categories/nextjs" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
+                <Link href="/blog?category=nextjs" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
                   Next.js
                 </Link>
               </li>
@@ -113,7 +124,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            © 2024 Modern Blog. All rights reserved.
+            © 2024 {siteName}. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacy" className="text-sm text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">

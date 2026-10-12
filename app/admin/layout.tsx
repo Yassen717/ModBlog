@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -37,12 +37,7 @@ export default function AdminLayout({
   // Initialize sample data
   useSampleData()
 
-  // Check authentication status
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/me')
       if (response.ok) {
@@ -57,7 +52,12 @@ export default function AdminLayout({
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  // Check authentication status
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   const handleLogout = async () => {
     try {
@@ -174,9 +174,6 @@ export default function AdminLayout({
             </Button>
             
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                🔔
-              </Button>
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/">View Site</Link>
               </Button>

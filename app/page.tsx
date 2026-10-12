@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Post, Category } from '@/types/blog'
-import { getPublishedPosts, getCategories } from '@/lib/storage'
+import { getPublishedPosts, getCategories, addSubscriber } from '@/lib/storage'
 import { HeroSection } from '@/components/blog/hero-section'
 import { PostGrid } from '@/components/blog/post-grid'
 import { CategoriesSection } from '@/components/blog/categories-section'
@@ -13,6 +13,9 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [subscribed, setSubscribed] = useState(false)
+  const [subscribeError, setSubscribeError] = useState('')
 
   useEffect(() => {
     const loadData = () => {
@@ -31,6 +34,25 @@ export default function Home() {
 
     loadData()
   }, [])
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const email = newsletterEmail.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setSubscribeError('Please enter a valid email address')
+      return
+    }
+
+    try {
+      addSubscriber(email)
+      setSubscribed(true)
+      setSubscribeError('')
+    } catch (error) {
+      console.error('Error subscribing:', error)
+      setSubscribeError('Something went wrong. Please try again.')
+    }
+  }
 
   if (loading) {
     return (
@@ -85,23 +107,39 @@ export default function Home() {
             <p className="text-xl mb-8 opacity-90">
               Get the latest articles and insights delivered straight to your inbox.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                disabled={subscribed}
+                className="flex-1 px-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 disabled:opacity-70"
               />
               <Button 
+                type="submit"
                 variant="secondary" 
                 size="lg"
+                disabled={subscribed}
                 className="bg-white text-blue-600 hover:bg-gray-100"
               >
-                Subscribe
+                {subscribed ? 'Subscribed!' : 'Subscribe'}
               </Button>
-            </div>
-            <p className="text-sm mt-4 opacity-75">
-              No spam, unsubscribe at any time.
-            </p>
+            </form>
+            {subscribeError && (
+              <p className="text-sm mt-4 text-red-200">
+                {subscribeError}
+              </p>
+            )}
+            {subscribed ? (
+              <p className="text-sm mt-4">
+                Thanks for subscribing! You&apos;ll get our latest articles in your inbox.
+              </p>
+            ) : (
+              <p className="text-sm mt-4 opacity-75">
+                No spam, unsubscribe at any time.
+              </p>
+            )}
           </div>
         </div>
       </section>

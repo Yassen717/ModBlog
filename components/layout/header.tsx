@@ -1,15 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
+import { getSettings } from '@/lib/storage'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [siteName, setSiteName] = useState('Modern Blog')
   const router = useRouter()
+
+  useEffect(() => {
+    const s = getSettings()
+    if (s?.general.siteName) setSiteName(s.general.siteName)
+  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,7 +34,7 @@ export function Header() {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">MB</span>
           </div>
-          <span className="font-bold text-xl">Modern Blog</span>
+          <span className="font-bold text-xl">{siteName}</span>
         </Link>
 
         {/* Desktop Navigation */}

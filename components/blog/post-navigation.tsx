@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Post } from '@/types/blog'
 
 interface PostNavigationProps {
@@ -49,12 +48,13 @@ export function PostNavigation({ previous, next }: PostNavigationProps) {
                   </div>
                   {previous.featuredImage && (
                     <div className="flex-shrink-0 hidden sm:block">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={previous.featuredImage}
                         alt={previous.title}
                         width={80}
                         height={60}
-                        className="rounded-lg object-cover"
+                        className="rounded-lg object-cover w-20 h-[60px]"
                       />
                     </div>
                   )}
@@ -73,12 +73,13 @@ export function PostNavigation({ previous, next }: PostNavigationProps) {
                 >
                   {next.featuredImage && (
                     <div className="flex-shrink-0 hidden sm:block">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={next.featuredImage}
                         alt={next.title}
                         width={80}
                         height={60}
-                        className="rounded-lg object-cover"
+                        className="rounded-lg object-cover w-20 h-[60px]"
                       />
                     </div>
                   )}

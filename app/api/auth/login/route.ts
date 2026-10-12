@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// Simple user store (in production, use a real database)
-const users = [
-  {
-    id: '1',
-    email: 'admin@modernblog.com',
-    password: 'admin123', // In production, hash passwords
-    name: 'Admin User',
-    role: 'admin',
-    avatar: '/images/caspar-camille-rubin-0qvBNep1Y04-unsplash.webp'
-  },
-  {
-    id: '2',
-    email: 'editor@modernblog.com',
-    password: 'editor123',
-    name: 'Editor User',
-    role: 'editor',
-    avatar: '/images/markus-spiske-MI9-PY5cyNs-unsplash.webp'
-  }
-]
+import { AUTH_COOKIE, signAuthToken, USERS } from '@/lib/auth'
 
 // POST /api/auth/login - Login endpoint
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    let body: { email?: string; password?: string }
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
+    }
+
+    const { email, password } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -33,8 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = users.find(u => u.email === email && u.password === password)
-    
+    const user = USERS.find(u => u.email === email && u.password === password)
+
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -42,7 +33,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // In production, use proper JWT or session management
     const response = NextResponse.json({
       message: 'Login successful',
       user: {
@@ -54,12 +44,13 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Set a simple session cookie (in production, use secure JWT)
-    response.cookies.set('auth-token', JSON.stringify({ 
-      userId: user.id, 
+    const token = await signAuthToken({
+      userId: user.id,
       role: user.role,
       exp: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
-    }), {
+    })
+
+    response.cookies.set(AUTH_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
